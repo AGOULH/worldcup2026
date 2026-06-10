@@ -563,7 +563,8 @@ function buildMatches(){
 // HELPERS
 // ═══════════════════════════════════════
 function now(){return Date.now()}
-function canPredict(m){return now()<m.ts}
+function canPredict(m){const d=m.ts-now(); return d>0 && d<172800000} // مفتوح فقط خلال آخر 48 ساعة قبل المباراة
+function tooEarly(m){return m.ts-now()>=172800000} // أكثر من 48 ساعة على الموعد
 function isActive(m){return now()>=m.ts && !m.official}
 function within48h(m){const d=m.ts-now(); return d>-7200000&&d<172800000}
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Riyadh'})}
@@ -658,7 +659,7 @@ function renderWelcome(){
       <div class="rule-row"><span class="rule-icon">✅</span><div><strong style="color:var(--green)">2 نقطة</strong> — الفائز أو التعادل صحيح لكن الأرقام مختلفة</div></div>
       <div class="rule-row"><span class="rule-icon">❌</span><div><strong style="color:var(--red)">0 نقطة</strong> — توقع الفائز خاطئ كلياً</div></div>
       <div class="rule-row"><span class="rule-icon">🔒</span><div>يُغلق التوقع تلقائياً لحظة انطلاق المباراة ولا يمكن التعديل</div></div>
-      <div class="rule-row"><span class="rule-icon">📅</span><div>تُعرض مباريات الـ 48 ساعة القادمة فقط لإدخال التوقعات</div></div>
+      <div class="rule-row"><span class="rule-icon">📅</span><div>يُفتح التوقع قبل 48 ساعة فقط من موعد كل مباراة، ويُغلق نهائياً عند انطلاقها</div></div>
       <div class="rule-row"><span class="rule-icon">🌍</span><div>تشمل المسابقة جميع مراحل البطولة: 104 مباراة</div></div>
       <div class="rule-row"><span class="rule-icon">🏆</span><div>الفائز من يجمع أعلى رصيد من النقاط في نهاية البطولة</div></div>
       <div class="rule-row"><span class="rule-icon">👥</span><div>يمكن للجميع المشاركة عبر رابط الموقع بإنشاء حساب خاص</div></div>
@@ -746,7 +747,7 @@ function buildMatchesPage(u){
   for(const dk in byDate){
     html+=`<div class="group-header">📅 ${dk}</div>`;
     byDate[dk].forEach(m=>{
-      const locked=!canPredict(m), live=isActive(m), up=preds[m.id]||{};
+      const locked=!canPredict(m), live=isActive(m), early=tooEarly(m), up=preds[m.id]||{};
       const pts=m.official?calcPts(up,m):null;
       const stColor=stageColor(m.stage);
       html+=`<div class="match-card${live?' live-card':''}">
@@ -758,6 +759,7 @@ function buildMatchesPage(u){
           <div>
             ${m.official?`<span class="badge bm">✔ انتهت</span>`
               :live?`<span class="badge bb"><span class="live-dot"></span>مباشر</span>`
+              :early?`<span class="badge bm">⏳ ${fmtTime(m.ts)}</span>`
               :`<span class="badge bgr">🕐 ${fmtTime(m.ts)}</span>`}
           </div>
         </div>
@@ -771,6 +773,7 @@ function buildMatchesPage(u){
               ?`<div style="font-size:1.1rem;font-weight:700;color:var(--gold2);line-height:1">${m.r1}-${m.r2}</div><div style="font-size:.6rem;color:var(--muted)">نهائي</div>`
               :locked&&up.r1!==undefined
               ?`<div style="font-size:.95rem;font-weight:700;color:var(--blue)">${up.r1}-${up.r2}</div><div style="font-size:.6rem;color:var(--muted)">توقعك</div>`
+              :early?`<div style="font-size:1rem">⏳</div>`
               :locked?`<div style="font-size:1rem">🔒</div>`
               :`<div style="font-size:.7rem;color:var(--muted)">VS</div>`}
           </div>
@@ -787,11 +790,15 @@ function buildMatchesPage(u){
                   ${up.r1!==undefined?`<span class="badge bm" style="margin-right:.3rem">توقعك: ${up.r1}-${up.r2}</span>`:''}`
                 :`<span class="badge bm">لم تتوقع هذه المباراة</span>`}
             </div>`
+          :early
+          ?`<div style="text-align:center;margin-top:.4rem">
+              <span class="badge bm">⏳ يُفتح التوقع قبل 48 ساعة من المباراة</span>
+            </div>`
           :locked
           ?`<div style="text-align:center;margin-top:.4rem">
               ${up.r1!==undefined
                 ?`<span class="badge bbl">✓ توقعت: ${up.r1}-${up.r2}</span>`
-                :`<span class="badge bm">🔒 التوقع مغلق</span>`}
+                :`<span class="badge bm">🔒 التوقع مغلق — بدأت المباراة</span>`}
             </div>`
           :`<div style="margin-top:.625rem">
               <div class="score-inputs">
@@ -968,7 +975,7 @@ function buildSharePage(){
     <div class="rules-mini">
       <div class="rules-mini-row"><span>⭐</span> <strong style="color:var(--gold)">5 نقاط</strong> = النتيجة الصحيحة</div>
       <div class="rules-mini-row"><span>✅</span> <strong style="color:var(--green)">2 نقطة</strong> = الفائز صحيح فقط</div>
-      <div class="rules-mini-row"><span>🔒</span> التوقع يُغلق عند بداية المباراة</div>
+      <div class="rules-mini-row"><span>🔒</span> التوقع يُفتح قبل 48 ساعة ويُغلق عند بداية المباراة</div>
       <div class="rules-mini-row"><span>📅</span> 104 مباراة من 11 يونيو إلى 19 يوليو</div>
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin:.875rem 0"></div>
@@ -1008,7 +1015,7 @@ function shareWhatsapp(){
 - 2 نقطة للفائز الصحيح فقط
 - 0 نقطة للتوقع الخاطئ
 
-التوقع يغلق عند بداية كل مباراة.
+التوقع يفتح قبل 48 ساعة من كل مباراة ويغلق عند بدايتها.
 
 رابط المسابقة:
 ${window.location.href}`;
@@ -1290,7 +1297,10 @@ function doLogout(){DB.set('currentUser',null);curView='welcome';render();}
 function savePred(mid){
   const u=DB.currentUser();
   const m=DB.matches().find(x=>x.id===mid);
-  if(!m||!canPredict(m)){showInlineMsg('pmsg','🔒 التوقع مغلق بعد بداية المباراة','err');return;}
+  if(!m||!canPredict(m)){
+    const msg=m&&tooEarly(m)?'⏳ يُفتح التوقع قبل 48 ساعة من موعد المباراة':'🔒 التوقع مغلق بعد بداية المباراة';
+    showInlineMsg('pmsg',msg,'err');return;
+  }
   const r1=document.getElementById('p1-'+mid)?.value;
   const r2=document.getElementById('p2-'+mid)?.value;
   if(r1===''||r2===''){showInlineMsg('pmsg','أدخل النتيجة كاملة','err');return;}
