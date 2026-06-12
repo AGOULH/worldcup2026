@@ -688,8 +688,8 @@ function renderLogin(){
   <div id="lmsg" class="msg"></div>
   <div class="card">
     <div class="sec-title"><span class="icon">🔑</span> دخول</div>
-    <div style="margin-bottom:.625rem"><label>اسم المستخدم</label><input id="lu" placeholder="username" dir="ltr" autocomplete="off"/></div>
-    <div style="margin-bottom:.75rem"><label>كلمة المرور</label><input id="lp" type="password" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div style="margin-bottom:.625rem"><label>اسم المستخدم</label><input id="lu" placeholder="username" dir="ltr" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"/></div>
+    <div style="margin-bottom:.75rem"><label>كلمة المرور</label><input id="lp" type="password" placeholder="••••••" autocapitalize="none" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <button class="btn" onclick="doLogin()">دخول ←</button>
   </div>
   <div class="divider">أو أنشئ حساباً جديداً</div>
@@ -1598,11 +1598,11 @@ function ensureAdmin(){
   }
 }
 function doLogin(){
-  const un=document.getElementById('lu')?.value?.trim();
-  const pw=document.getElementById('lp')?.value;
+  const un=document.getElementById('lu')?.value?.trim()?.toLowerCase();
+  const pw=document.getElementById('lp')?.value?.trim();
   if(!un||!pw){showInlineMsg('lmsg','أدخل اسم المستخدم وكلمة المرور','err');return;}
   ensureAdmin();
-  const u=DB.users().find(x=>x.username===un&&x.password===pw);
+  const u=DB.users().find(x=>x.username?.toLowerCase()===un&&String(x.password).trim()===pw);
   if(!u){showInlineMsg('lmsg','اسم المستخدم أو كلمة المرور خاطئة','err');return;}
   DB.set('currentUser',u);curView='matches';render();
 }
@@ -1824,7 +1824,7 @@ function generatePassword(){
   for(let i=0;i<8;i++) pw+=chars[Math.floor(Math.random()*chars.length)];
   return pw;
 }
-function resetUserPassword(username){
+async function resetUserPassword(username){
   const admin=DB.currentUser();
   if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
   const users=DB.users();
@@ -1833,8 +1833,18 @@ function resetUserPassword(username){
   if(!confirm(`إعادة تعيين كلمة مرور:\n${target.name} (@${username})\n\nسيتم توليد كلمة مرور جديدة تلقائياً وتجهيز رسالة واتساب لإرسالها له.\n\nمتابعة؟`)) return;
   const newPw=generatePassword();
   target.password=newPw;
-  DB.saveUsers(users);
-  // رسالة جاهزة للإرسال عبر واتساب
+  // حفظ محلي فوري
+  CACHE.users=users; DB.set('users',users);
+  showNotif('⏳ جاري حفظ كلمة المرور...','🔑',2000);
+  // انتظار اكتمال الحفظ في قاعدة البيانات قبل فتح الواتساب (مهم على الجوال)
+  if(FB_OK){
+    try{
+      await fdb.collection('app').doc('users').set({list:users});
+    }catch(e){
+      showNotif('⚠️ تعذر الحفظ في قاعدة البيانات — أعد المحاولة','⚠️',4000);
+      return;
+    }
+  }
   const msg=
 `مرحباً ${target.name} 👋
 
@@ -1847,7 +1857,7 @@ function resetUserPassword(username){
 ${window.location.href}
 
 (يمكنك تغيير كلمة المرور بعد الدخول من صفحة "حسابي")`;
-  showNotif(`✓ تم التغيير — أرسل الرسالة للمشارك`,'🔑',3000);
+  showNotif(`✓ تم الحفظ — أرسل الرسالة للمشارك`,'🔑',3000);
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 function changeName(){
