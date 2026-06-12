@@ -973,6 +973,7 @@ function buildAdmin(){
         <div style="font-size:1rem;font-weight:700;color:var(--gold);font-family:'Cairo',sans-serif">${st.total}</div>
         <div style="font-size:.6rem;color:var(--muted)">نقطة</div>
       </div>
+      <button class="btn btn-outline btn-sm" style="flex-shrink:0" onclick="resetUserPassword('${u.username}')" title="إعادة تعيين كلمة المرور">🔑</button>
     </div>`;
   });
   return html;
@@ -1743,6 +1744,19 @@ function delResult(mid){
   DB.saveMatches(matches);
   showNotif('تم حذف النتيجة','⚠️');
   showPage('admin');
+}
+function resetUserPassword(username){
+  const admin=DB.currentUser();
+  if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
+  const users=DB.users();
+  const target=users.find(x=>x.username===username);
+  if(!target){showNotif('المستخدم غير موجود','⚠️');return;}
+  const newPw=prompt(`إعادة تعيين كلمة المرور للمشارك:\n${target.name} (@${username})\n\nأدخل كلمة المرور الجديدة (6+ أحرف):`);
+  if(newPw===null) return; // ألغى
+  if(!newPw||newPw.trim().length<6){showNotif('كلمة المرور يجب أن تكون 6 أحرف على الأقل','⚠️');return;}
+  target.password=newPw.trim();
+  DB.saveUsers(users);
+  showNotif(`✓ تم تغيير كلمة مرور ${target.name} — أبلغه بها`,'🔑',5000);
 }
 function changeName(){
   const u=DB.currentUser();
