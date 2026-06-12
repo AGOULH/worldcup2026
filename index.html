@@ -834,7 +834,8 @@ function buildLeaderboard(){
     <div class="stat-card"><div class="stat-n">${lb.length}</div><div class="stat-l">مشارك</div></div>
     <div class="stat-card"><div class="stat-n">${lb[0]?.total||0}</div><div class="stat-l">أعلى نقاط</div></div>
     <div class="stat-card"><div class="stat-n">${lb[0]?.correct||0}</div><div class="stat-l">أفضل إصابة</div></div>
-  </div>`;
+  </div>
+  <button class="btn btn-green" style="margin-bottom:.875rem" onclick="exportLeaderboardImage()">📸 تصدير الترتيب كصورة ومشاركتها</button>`;
   if(lb[0]) html+=`<div class="card glass" style="text-align:center;margin-bottom:.875rem;border-color:rgba(201,168,76,.4)">
     <div style="font-size:2.8rem;margin-bottom:.25rem">👑</div>
     <div style="font-size:1.1rem;font-weight:700;color:var(--gold2)">${lb[0].name}</div>
@@ -1023,6 +1024,208 @@ ${window.location.href}`;
 }
 function copyLink(){
   navigator.clipboard.writeText(window.location.href).then(()=>showNotif('✓ تم نسخ الرابط!','📋')).catch(()=>showNotif('يرجى نسخ الرابط يدوياً','⚠️'));
+}
+
+// ── LEADERBOARD IMAGE EXPORT ──────────────────────────────────
+const HYPE_TOP=[ // عبارات للمتصدر (المركز الأول)
+  'يتصدر باقتدار... هل من منافس؟ 🔥',
+  'على القمة وعينه على الكأس 🏆',
+  'يحلّق وحيداً في الصدارة ✈️',
+  'كأنه ميسي في ليلة تتويج! ⚽',
+  'الصدارة لها رجالها 👑',
+  'يكتب التاريخ توقعاً بعد توقع 📜'
+];
+const HYPE_SECOND=[ // عبارات للمركز الثاني
+  'يتنفس في رقبة المتصدر 👀',
+  'الوصافة مؤقتة... والقمة هدفه 🎯',
+  'على بُعد توقع واحد من الصدارة ⚡',
+  'يطارد القمة بلا رحمة 🏃',
+  'صائد الفرص... ينتظر زلّة المتصدر 🦅'
+];
+const HYPE_THIRD=[ // عبارات للمركز الثالث
+  'يبهرك بهدوئه 🥷',
+  'البرونزية اليوم... والذهب قادم 📈',
+  'الحصان الأسود في السباق 🐎',
+  'هادئ... لكن خطير ⚠️',
+  'يقترب من المنصة خطوة بخطوة 🪜'
+];
+const HYPE_RACE=[ // عبارات عامة للسباق
+  'السباق محتدم والفارق نقاط... من يخطف الصدارة؟ 🔥',
+  'المنافسة على أشدّها والقادم أعظم ⚡',
+  'لا أحد في مأمن... الترتيب يتغير بعد كل صافرة 📣',
+  'توقع واحد صحيح قد يقلب الطاولة! 🎯',
+  'الأهداف تُسجَّل في الملعب... والنقاط تُحسم هنا ⚽',
+  'مفاجآت المونديال لم تنتهِ بعد 🌍',
+  'من سيرفع كأس التوقعات؟ 🏆',
+  'كل مباراة فرصة جديدة للانقضاض على الصدارة 🦅'
+];
+const HYPE_BOTTOM=[ // عبارات لطيفة للمركز الأخير
+  'البطولة طويلة والعودة ممكنة 💪',
+  'حتى البرازيل خسرت 7-1... لا تيأس 😅',
+  'القادم أجمل... ركّز على الجولة القادمة 🎯',
+  'الكبار يبدؤون من الأسفل 📈'
+];
+function pickRandom(arr){return arr[Math.floor(Math.random()*arr.length)]}
+
+function exportLeaderboardImage(){
+  const lb=leaderboard();
+  if(!lb.length){showNotif('لا يوجد مشاركون لتصديرهم','⚠️');return;}
+  showNotif('جاري إنشاء الصورة...','📸',2000);
+
+  const W=900;
+  const rowH=96, topRowH=132; // المراكز الثلاثة الأولى أطول لاستيعاب العبارة
+  const topCount=Math.min(3,lb.length);
+  const headerH=lb.length>=3?320:270; // مساحة إضافية لعبارة المركز الأخير
+  const footerH=80;
+  const rowsH=topCount*topRowH+(lb.length-topCount)*rowH;
+  const H=headerH+rowsH+footerH;
+  const cv=document.createElement('canvas');
+  cv.width=W; cv.height=H;
+  const x=cv.getContext('2d');
+
+  // Background gradient
+  const bg=x.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#060d1a');bg.addColorStop(.5,'#0d1e38');bg.addColorStop(1,'#060d1a');
+  x.fillStyle=bg;x.fillRect(0,0,W,H);
+
+  // Subtle stars
+  x.fillStyle='rgba(255,255,255,.25)';
+  for(let i=0;i<60;i++){
+    x.beginPath();
+    x.arc(Math.random()*W,Math.random()*H,Math.random()*1.5+0.5,0,7);
+    x.fill();
+  }
+
+  // Gold top glow
+  const glow=x.createRadialGradient(W/2,0,50,W/2,0,420);
+  glow.addColorStop(0,'rgba(201,168,76,.30)');glow.addColorStop(1,'transparent');
+  x.fillStyle=glow;x.fillRect(0,0,W,420);
+
+  x.textAlign='center';
+  // Trophy
+  x.font='64px serif';
+  x.fillText('🏆',W/2,86);
+  // Title
+  x.fillStyle='#F0D080';
+  x.font='bold 44px Tajawal, Arial';
+  x.fillText('ترتيب مسابقة كأس العالم 2026',W/2,150);
+  // Date line
+  const dateStr=new Date().toLocaleDateString('ar-SA',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Riyadh'});
+  const timeStr=new Date().toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Riyadh'});
+  x.fillStyle='#7a94b4';
+  x.font='24px Tajawal, Arial';
+  x.fillText(`${dateStr} - ${timeStr}`,W/2,192);
+  // Hype line (rotating race phrase)
+  x.fillStyle='#C9A84C';
+  x.font='bold 27px Tajawal, Arial';
+  x.fillText(pickRandom(HYPE_RACE),W/2,238);
+  // عبارة المركز الأخير في العنوان
+  if(lb.length>=3){
+    const last=lb[lb.length-1];
+    x.fillStyle='#7a94b4';
+    x.font='23px Tajawal, Arial';
+    x.fillText(`${last.name}: ${pickRandom(HYPE_BOTTOM)}`,W/2,282);
+  }
+
+  // Rows
+  const medals=['🥇','🥈','🥉'];
+  const rankHypes=[pickRandom(HYPE_TOP),pickRandom(HYPE_SECOND),pickRandom(HYPE_THIRD)];
+  const hypeColors=['#FFD700','#C0C0C0','#CD7F32'];
+  const maxPts=lb[0].total||1;
+  let y=headerH;
+  lb.forEach((u,i)=>{
+    const rh=i<3?topRowH:rowH;
+    const isTop=i===0;
+    // Row card
+    x.fillStyle=isTop?'rgba(201,168,76,.13)':i<3?'rgba(20,33,54,.9)':'rgba(16,29,48,.85)';
+    roundRect(x,30,y+8,W-60,rh-16,16);
+    x.fill();
+    x.strokeStyle=isTop?'rgba(255,215,0,.5)':i===1?'rgba(192,192,192,.35)':i===2?'rgba(205,127,50,.35)':'rgba(28,45,69,.9)';
+    x.lineWidth=isTop?2.5:1.5;
+    roundRect(x,30,y+8,W-60,rh-16,16);
+    x.stroke();
+
+    const cy=i<3?y+rh/2-14:y+rh/2; // مركز السطر الأول (الاسم/النقاط) أعلى قليلاً في بطاقات الثلاثة الأوائل
+
+    // Rank medal/number (right side, RTL)
+    x.textAlign='center';
+    x.font=i<3?'40px serif':'bold 32px Tajawal, Arial';
+    x.fillStyle=i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#5a7494';
+    x.fillText(i<3?medals[i]:String(i+1),W-80,cy+14);
+
+    // Name
+    x.textAlign='right';
+    x.fillStyle=isTop?'#F0D080':'#d8e8f8';
+    x.font='bold 30px Tajawal, Arial';
+    x.fillText(u.name,W-135,cy-2);
+    // Stats line
+    x.fillStyle='#7a94b4';
+    x.font='21px Tajawal, Arial';
+    x.fillText(`${u.correct} صحيحة | ${u.half} جزئية | ${u.count} متوقعة`,W-135,cy+30);
+
+    // عبارة تحفيزية داخل بطاقات المراكز الثلاثة الأولى
+    if(i<3){
+      x.textAlign='right';
+      x.fillStyle=hypeColors[i];
+      x.font='bold 23px Tajawal, Arial';
+      x.fillText(rankHypes[i],W-135,y+rh-26);
+    }
+
+    // Points (left)
+    x.textAlign='left';
+    x.fillStyle='#C9A84C';
+    x.font='bold 44px Cairo, Tajawal, Arial';
+    x.fillText(String(u.total),58,cy+16);
+
+    // Progress bar
+    const barW=200, barX=140, barY=cy+4;
+    x.fillStyle='rgba(28,45,69,.9)';
+    roundRect(x,barX,barY,barW,8,4);x.fill();
+    x.fillStyle='#C9A84C';
+    const fw=Math.max(8,Math.round(barW*(u.total/maxPts)));
+    roundRect(x,barX,barY,fw,8,4);x.fill();
+
+    y+=rh;
+  });
+
+  // Footer
+  const fy=y;
+  x.strokeStyle='rgba(201,168,76,.3)';x.lineWidth=1;
+  x.beginPath();x.moveTo(60,fy+18);x.lineTo(W-60,fy+18);x.stroke();
+  x.textAlign='center';
+  // Credit
+  x.fillStyle='#5a7494';
+  x.font='21px Tajawal, Arial';
+  x.fillText('مسابقة توقع كأس العالم 2026 | إعداد: حسن العاقول',W/2,fy+52);
+
+  // Export & share
+  cv.toBlob(async blob=>{
+    if(!blob){showNotif('تعذر إنشاء الصورة','⚠️');return;}
+    const file=new File([blob],'leaderboard.png',{type:'image/png'});
+    // Try native share (mobile → WhatsApp directly)
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({files:[file],title:'ترتيب مسابقة كأس العالم 2026'});
+        return;
+      }catch(e){/* user cancelled or unsupported, fall through */}
+    }
+    // Fallback: download the image
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='ترتيب-المسابقة.png';
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    showNotif('✓ تم تنزيل الصورة — شاركها واتساب','📸',4000);
+  },'image/png');
+}
+function roundRect(x,px,py,w,h,r){
+  x.beginPath();
+  x.moveTo(px+r,py);
+  x.arcTo(px+w,py,px+w,py+h,r);
+  x.arcTo(px+w,py+h,px,py+h,r);
+  x.arcTo(px,py+h,px,py,r);
+  x.arcTo(px,py,px+w,py,r);
+  x.closePath();
 }
 
 // ── PROFILE PAGE ──────────────────────────────────────────────
