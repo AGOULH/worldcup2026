@@ -316,7 +316,7 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
   </div>
   <h1>WORLD CUP 2026</h1>
   <p class="hero-sub">مسابقة توقع نتائج كأس العالم • أمريكا الشمالية</p>
-  <p class="hero-credit">إعداد: حسن العاقول</p>
+  <p class="hero-credit">إعداد: حسن العاقول <span style="opacity:.5;font-size:.6rem">v3.0</span></p>
   <div class="hero-stats" id="hero-stats" style="display:none">
     <div class="hero-stat"><div class="hero-stat-n" id="hs-players">0</div><div class="hero-stat-l">مشارك</div></div>
     <div class="hero-stat"><div class="hero-stat-n" id="hs-matches">104</div><div class="hero-stat-l">مباراة</div></div>
@@ -1012,7 +1012,8 @@ function buildAdmin(){
         <div style="font-size:1rem;font-weight:700;color:var(--gold);font-family:'Cairo',sans-serif">${st.total}</div>
         <div style="font-size:.6rem;color:var(--muted)">نقطة</div>
       </div>
-      <button class="btn btn-outline btn-sm" style="flex-shrink:0" onclick="resetUserPassword('${u.username}')" title="إعادة تعيين كلمة المرور">🔑</button>
+      <button class="btn btn-outline btn-sm" style="flex-shrink:0;padding:.3rem .5rem" onclick="showUserPassword('${u.username}')" title="عرض كلمة المرور الحالية">👁️</button>
+      <button class="btn btn-outline btn-sm" style="flex-shrink:0;padding:.3rem .5rem" onclick="resetUserPassword('${u.username}')" title="إعادة تعيين كلمة المرور">🔑</button>
     </div>`;
   });
   return html;
@@ -1897,6 +1898,15 @@ function generatePassword(){
   for(let i=0;i<8;i++) pw+=chars[Math.floor(Math.random()*chars.length)];
   return pw;
 }
+async function showUserPassword(username){
+  const admin=DB.currentUser();
+  if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
+  showNotif('⏳ جاري القراءة من السيرفر...','👁️',2000);
+  const users=await fetchUsersFresh();
+  const u=users.find(x=>x.username===username);
+  if(!u){alert('المستخدم غير موجود في قاعدة البيانات!');return;}
+  alert(`بيانات الدخول الحالية (من السيرفر مباشرة):\n\nاسم المستخدم: ${u.username}\nكلمة المرور: ${u.password}\n\nطول كلمة المرور: ${String(u.password).length} حرف`);
+}
 async function resetUserPassword(username){
   const admin=DB.currentUser();
   if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
@@ -1916,6 +1926,18 @@ async function resetUserPassword(username){
     if(ok===false){showNotif('المستخدم غير موجود في قاعدة البيانات','⚠️');return;}
   }catch(e){
     showNotif('⚠️ تعذر الحفظ — تحقق من الإنترنت وأعد المحاولة','⚠️',4000);
+    return;
+  }
+  // تحقق إجباري: قراءة من السيرفر مباشرة للتأكد أن الباسورد الجديد محفوظ فعلاً
+  try{
+    const verify=await fetchUsersFresh();
+    const saved=verify.find(x=>x.username===username);
+    if(!saved||cleanInput(saved.password)!==newPw){
+      showNotif('❌ فشل التحقق من الحفظ! الباسورد لم يُحفظ على السيرفر — لا ترسل الرسالة','⚠️',6000);
+      return;
+    }
+  }catch(e){
+    showNotif('⚠️ تعذر التحقق من الحفظ — لا ترسل الرسالة وأعد المحاولة','⚠️',5000);
     return;
   }
   const target={name:targetName};
