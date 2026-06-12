@@ -1817,18 +1817,38 @@ function delResult(mid){
   showNotif('تم حذف النتيجة','⚠️');
   showPage('admin');
 }
+function generatePassword(){
+  // كلمة مرور سهلة القراءة والكتابة: 8 خانات أرقام وحروف واضحة (بدون 0/O/1/l المتشابهة)
+  const chars='abcdefghjkmnpqrstuvwxyz23456789';
+  let pw='';
+  for(let i=0;i<8;i++) pw+=chars[Math.floor(Math.random()*chars.length)];
+  return pw;
+}
 function resetUserPassword(username){
   const admin=DB.currentUser();
   if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
   const users=DB.users();
   const target=users.find(x=>x.username===username);
   if(!target){showNotif('المستخدم غير موجود','⚠️');return;}
-  const newPw=prompt(`إعادة تعيين كلمة المرور للمشارك:\n${target.name} (@${username})\n\nأدخل كلمة المرور الجديدة (6+ أحرف):`);
-  if(newPw===null) return; // ألغى
-  if(!newPw||newPw.trim().length<6){showNotif('كلمة المرور يجب أن تكون 6 أحرف على الأقل','⚠️');return;}
-  target.password=newPw.trim();
+  if(!confirm(`إعادة تعيين كلمة مرور:\n${target.name} (@${username})\n\nسيتم توليد كلمة مرور جديدة تلقائياً وتجهيز رسالة واتساب لإرسالها له.\n\nمتابعة؟`)) return;
+  const newPw=generatePassword();
+  target.password=newPw;
   DB.saveUsers(users);
-  showNotif(`✓ تم تغيير كلمة مرور ${target.name} — أبلغه بها`,'🔑',5000);
+  // رسالة جاهزة للإرسال عبر واتساب
+  const msg=
+`مرحباً ${target.name} 👋
+
+تمت إعادة تعيين بيانات دخولك لمسابقة توقع كأس العالم 2026:
+
+اسم المستخدم: ${username}
+كلمة المرور: ${newPw}
+
+رابط المسابقة:
+${window.location.href}
+
+(يمكنك تغيير كلمة المرور بعد الدخول من صفحة "حسابي")`;
+  showNotif(`✓ تم التغيير — أرسل الرسالة للمشارك`,'🔑',3000);
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 function changeName(){
   const u=DB.currentUser();
