@@ -435,6 +435,40 @@ function ensureMatches(){
     DB.saveMatches(CACHE.matches);
   }
 }
+// قراءة أحدث قائمة مستخدمين من السيرفر مباشرة (تتجاوز أي كاش قديم)
+async function fetchUsersFresh(){
+  if(!FB_OK) return DB.users();
+  try{
+    const s=await fdb.collection('app').doc('users').get({source:'server'});
+    if(s.exists){CACHE.users=s.data().list||[];DB.set('users',CACHE.users);}
+  }catch(e){
+    try{
+      const s=await fdb.collection('app').doc('users').get();
+      if(s.exists){CACHE.users=s.data().list||[];DB.set('users',CACHE.users);}
+    }catch(e2){console.warn('fetchUsersFresh failed',e2);}
+  }
+  return DB.users();
+}
+// تعديل آمن على قائمة المستخدمين بمعاملة (يمنع تعارض الكتابة بين الأجهزة)
+async function mutateUsers(mutator){
+  if(!FB_OK){
+    const users=DB.users();
+    const result=mutator(users);
+    if(result!==false){CACHE.users=users;DB.set('users',users);}
+    return result;
+  }
+  const ref=fdb.collection('app').doc('users');
+  let outcome;
+  await fdb.runTransaction(async tx=>{
+    const snap=await tx.get(ref);
+    const list=snap.exists?(snap.data().list||[]):[];
+    outcome=mutator(list);
+    if(outcome===false) return; // ألغى التعديل
+    tx.set(ref,{list});
+    CACHE.users=list;DB.set('users',list);
+  });
+  return outcome;
+}
 
 // ═══════════════════════════════════════
 // BUILD MATCHES (Full Official Schedule)
@@ -1597,27 +1631,38 @@ function ensureAdmin(){
     DB.saveUsers(users);
   }
 }
-function doLogin(){
+async function doLogin(){
   const un=document.getElementById('lu')?.value?.trim()?.toLowerCase();
   const pw=document.getElementById('lp')?.value?.trim();
   if(!un||!pw){showInlineMsg('lmsg','أدخل اسم المستخدم وكلمة المرور','err');return;}
+  showInlineMsg('lmsg','⏳ جاري التحقق...','ok');
+  const users=await fetchUsersFresh(); // أحدث نسخة من السيرفر دائماً
   ensureAdmin();
-  const u=DB.users().find(x=>x.username?.toLowerCase()===un&&String(x.password).trim()===pw);
+  const u=users.find(x=>x.username?.toLowerCase()===un&&String(x.password).trim()===pw);
   if(!u){showInlineMsg('lmsg','اسم المستخدم أو كلمة المرور خاطئة','err');return;}
   DB.set('currentUser',u);curView='matches';render();
 }
-function doRegister(){
+async function doRegister(){
   const name=document.getElementById('rn')?.value?.trim();
   const un=document.getElementById('ru')?.value?.trim()?.toLowerCase().replace(/\s/g,'');
-  const pw=document.getElementById('rp')?.value;
+  const pw=document.getElementById('rp')?.value?.trim();
   if(!name||!un||!pw){showInlineMsg('lmsg','أكمل جميع الحقول','err');return;}
   if(un.length<3){showInlineMsg('lmsg','اسم المستخدم 3 أحرف على الأقل','err');return;}
   if(pw.length<6){showInlineMsg('lmsg','كلمة المرور 6 أحرف على الأقل','err');return;}
-  ensureAdmin();
-  const users=DB.users();
-  if(users.find(x=>x.username===un)){showInlineMsg('lmsg','اسم المستخدم مستخدم مسبقاً','err');return;}
+  showInlineMsg('lmsg','⏳ جاري إنشاء الحساب...','ok');
   const nu={username:un,password:pw,name,isAdmin:false};
-  users.push(nu);DB.saveUsers(users);DB.set('currentUser',nu);
+  try{
+    const ok=await mutateUsers(list=>{
+      if(!list.find(x=>x.username==='admin')) list.push({username:'admin',password:'admin2026',name:'حسن العاقول',isAdmin:true});
+      if(list.find(x=>x.username?.toLowerCase()===un)) return false;
+      list.push(nu);
+      return true;
+    });
+    if(ok===false){showInlineMsg('lmsg','اسم المستخدم مستخدم مسبقاً','err');return;}
+  }catch(e){
+    showInlineMsg('lmsg','تعذر إنشاء الحساب — تحقق من الإنترنت','err');return;
+  }
+  DB.set('currentUser',nu);
   showNotif(`مرحباً ${name}! تم إنشاء حسابك بنجاح 🎉`,'✅');
   curView='matches';render();
 }
@@ -1827,24 +1872,25 @@ function generatePassword(){
 async function resetUserPassword(username){
   const admin=DB.currentUser();
   if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
-  const users=DB.users();
-  const target=users.find(x=>x.username===username);
-  if(!target){showNotif('المستخدم غير موجود','⚠️');return;}
-  if(!confirm(`إعادة تعيين كلمة مرور:\n${target.name} (@${username})\n\nسيتم توليد كلمة مرور جديدة تلقائياً وتجهيز رسالة واتساب لإرسالها له.\n\nمتابعة؟`)) return;
+  const preview=DB.users().find(x=>x.username===username);
+  if(!preview){showNotif('المستخدم غير موجود','⚠️');return;}
+  if(!confirm(`إعادة تعيين كلمة مرور:\n${preview.name} (@${username})\n\nسيتم توليد كلمة مرور جديدة تلقائياً وتجهيز رسالة واتساب لإرسالها له.\n\nمتابعة؟`)) return;
   const newPw=generatePassword();
-  target.password=newPw;
-  // حفظ محلي فوري
-  CACHE.users=users; DB.set('users',users);
-  showNotif('⏳ جاري حفظ كلمة المرور...','🔑',2000);
-  // انتظار اكتمال الحفظ في قاعدة البيانات قبل فتح الواتساب (مهم على الجوال)
-  if(FB_OK){
-    try{
-      await fdb.collection('app').doc('users').set({list:users});
-    }catch(e){
-      showNotif('⚠️ تعذر الحفظ في قاعدة البيانات — أعد المحاولة','⚠️',4000);
-      return;
-    }
+  showNotif('⏳ جاري حفظ كلمة المرور...','🔑',2500);
+  let targetName=preview.name;
+  try{
+    const ok=await mutateUsers(list=>{
+      const t=list.find(x=>x.username===username);
+      if(!t) return false;
+      t.password=newPw; targetName=t.name;
+      return true;
+    });
+    if(ok===false){showNotif('المستخدم غير موجود في قاعدة البيانات','⚠️');return;}
+  }catch(e){
+    showNotif('⚠️ تعذر الحفظ — تحقق من الإنترنت وأعد المحاولة','⚠️',4000);
+    return;
   }
+  const target={name:targetName};
   const msg=
 `مرحباً ${target.name} 👋
 
@@ -1860,31 +1906,45 @@ ${window.location.href}
   showNotif(`✓ تم الحفظ — أرسل الرسالة للمشارك`,'🔑',3000);
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
-function changeName(){
+async function changeName(){
   const u=DB.currentUser();
   const newName=document.getElementById('newname')?.value?.trim();
   if(!newName){showInlineMsg('namemsg','أدخل الاسم الجديد','err');return;}
   if(newName.length<2){showInlineMsg('namemsg','الاسم قصير جداً','err');return;}
   if(newName.length>30){showInlineMsg('namemsg','الاسم طويل جداً (30 حرفاً كحد أقصى)','err');return;}
   if(newName===u.name){showInlineMsg('namemsg','هذا هو اسمك الحالي','err');return;}
-  const users=DB.users(), idx=users.findIndex(x=>x.username===u.username);
-  if(idx<0) return;
-  users[idx].name=newName;
-  DB.saveUsers(users);
+  showInlineMsg('namemsg','⏳ جاري الحفظ...','ok');
+  try{
+    const ok=await mutateUsers(list=>{
+      const t=list.find(x=>x.username===u.username);
+      if(!t) return false;
+      t.name=newName;
+      return true;
+    });
+    if(ok===false){showInlineMsg('namemsg','تعذر إيجاد حسابك','err');return;}
+  }catch(e){showInlineMsg('namemsg','تعذر الحفظ — تحقق من الإنترنت','err');return;}
   DB.set('currentUser',{...u,name:newName});
   showNotif(`✓ تم تغيير اسمك إلى: ${newName}`,'✏️');
   setTimeout(()=>{showPage('profile');},900);
 }
-function changePw(){
+async function changePw(){
   const u=DB.currentUser();
-  const o=document.getElementById('pw1')?.value;
-  const n=document.getElementById('pw2')?.value;
+  const o=document.getElementById('pw1')?.value?.trim();
+  const n=document.getElementById('pw2')?.value?.trim();
   if(!o||!n){showInlineMsg('pwmsg','أكمل الحقلين','err');return;}
-  if(u.password!==o){showInlineMsg('pwmsg','كلمة المرور الحالية خاطئة','err');return;}
   if(n.length<6){showInlineMsg('pwmsg','كلمة المرور الجديدة قصيرة جداً','err');return;}
-  const users=DB.users(), idx=users.findIndex(x=>x.username===u.username);
-  if(idx<0) return;
-  users[idx].password=n;DB.saveUsers(users);
+  showInlineMsg('pwmsg','⏳ جاري الحفظ...','ok');
+  try{
+    const ok=await mutateUsers(list=>{
+      const t=list.find(x=>x.username===u.username);
+      if(!t) return false;
+      if(String(t.password).trim()!==o) return 'wrongpw';
+      t.password=n;
+      return true;
+    });
+    if(ok==='wrongpw'){showInlineMsg('pwmsg','كلمة المرور الحالية خاطئة','err');return;}
+    if(ok===false){showInlineMsg('pwmsg','تعذر إيجاد حسابك','err');return;}
+  }catch(e){showInlineMsg('pwmsg','تعذر الحفظ — تحقق من الإنترنت','err');return;}
   DB.set('currentUser',{...u,password:n});
   showInlineMsg('pwmsg','✓ تم تغيير كلمة المرور','ok');
 }
