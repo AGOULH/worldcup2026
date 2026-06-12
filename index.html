@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&family=Bebas+Neue&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
@@ -835,7 +836,10 @@ function buildLeaderboard(){
     <div class="stat-card"><div class="stat-n">${lb[0]?.total||0}</div><div class="stat-l">أعلى نقاط</div></div>
     <div class="stat-card"><div class="stat-n">${lb[0]?.correct||0}</div><div class="stat-l">أفضل إصابة</div></div>
   </div>
-  <button class="btn btn-green" style="margin-bottom:.875rem" onclick="exportLeaderboardImage()">📸 تصدير الترتيب كصورة ومشاركتها</button>`;
+  <div class="two-col" style="margin-bottom:.875rem">
+    <button class="btn btn-green" onclick="exportLeaderboardImage()">📸 تصدير صورة</button>
+    <button class="btn btn-blue" onclick="exportLeaderboardPDF()">📄 تصدير PDF</button>
+  </div>`;
   if(lb[0]) html+=`<div class="card glass" style="text-align:center;margin-bottom:.875rem;border-color:rgba(201,168,76,.4)">
     <div style="font-size:2.8rem;margin-bottom:.25rem">👑</div>
     <div style="font-size:1.1rem;font-weight:700;color:var(--gold2)">${lb[0].name}</div>
@@ -1077,11 +1081,11 @@ const HYPE_BOTTOM=[ // عبارات لطيفة للمركز الأخير
 ];
 function pickRandom(arr){return arr[Math.floor(Math.random()*arr.length)]}
 
-function exportLeaderboardImage(){
+function buildLeaderboardCanvas(){
   const lb=leaderboard();
-  if(!lb.length){showNotif('لا يوجد مشاركون لتصديرهم','⚠️');return;}
-  showNotif('جاري إنشاء الصورة...','📸',2000);
+  if(!lb.length) return null;
 
+  const SCALE=2; // دقة مضاعفة لوضوح أعلى عند العرض والمشاركة
   const W=900;
   const rowH=96, topRowH=132; // المراكز الثلاثة الأولى أطول لاستيعاب العبارة
   const topCount=Math.min(3,lb.length);
@@ -1090,8 +1094,9 @@ function exportLeaderboardImage(){
   const rowsH=topCount*topRowH+(lb.length-topCount)*rowH;
   const H=headerH+rowsH+footerH;
   const cv=document.createElement('canvas');
-  cv.width=W; cv.height=H;
+  cv.width=W*SCALE; cv.height=H*SCALE;
   const x=cv.getContext('2d');
+  x.scale(SCALE,SCALE);
 
   // Background gradient
   const bg=x.createLinearGradient(0,0,0,H);
@@ -1208,18 +1213,22 @@ function exportLeaderboardImage(){
   x.font='21px Tajawal, Arial';
   x.fillText('مسابقة توقع كأس العالم 2026 | إعداد: حسن العاقول',W/2,fy+52);
 
-  // Export & share
-  cv.toBlob(async blob=>{
+  return {cv,W,H};
+}
+
+function exportLeaderboardImage(){
+  const built=buildLeaderboardCanvas();
+  if(!built){showNotif('لا يوجد مشاركون لتصديرهم','⚠️');return;}
+  showNotif('جاري إنشاء الصورة...','📸',2000);
+  built.cv.toBlob(async blob=>{
     if(!blob){showNotif('تعذر إنشاء الصورة','⚠️');return;}
     const file=new File([blob],'leaderboard.png',{type:'image/png'});
-    // Try native share (mobile → WhatsApp directly)
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       try{
         await navigator.share({files:[file],title:'ترتيب مسابقة كأس العالم 2026'});
         return;
-      }catch(e){/* user cancelled or unsupported, fall through */}
+      }catch(e){}
     }
-    // Fallback: download the image
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;a.download='ترتيب-المسابقة.png';
@@ -1227,6 +1236,37 @@ function exportLeaderboardImage(){
     URL.revokeObjectURL(url);
     showNotif('✓ تم تنزيل الصورة — شاركها واتساب','📸',4000);
   },'image/png');
+}
+
+async function exportLeaderboardPDF(){
+  const built=buildLeaderboardCanvas();
+  if(!built){showNotif('لا يوجد مشاركون لتصديرهم','⚠️');return;}
+  if(typeof window.jspdf==='undefined'){showNotif('مكتبة PDF لم تُحمّل — تحقق من الإنترنت','⚠️');return;}
+  showNotif('جاري إنشاء ملف PDF...','📄',2500);
+  try{
+    const {cv,W,H}=built;
+    const imgData=cv.toDataURL('image/jpeg',0.92);
+    const {jsPDF}=window.jspdf;
+    // صفحة بنفس أبعاد التصميم → يفتح بعرض كامل وجودة عالية في الواتساب
+    const pdf=new jsPDF({orientation:H>W?'portrait':'landscape',unit:'px',format:[W,H],compress:true});
+    pdf.addImage(imgData,'JPEG',0,0,W,H);
+    const blob=pdf.output('blob');
+    const file=new File([blob],'ترتيب-المسابقة.pdf',{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({files:[file],title:'ترتيب مسابقة كأس العالم 2026'});
+        return;
+      }catch(e){}
+    }
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='ترتيب-المسابقة.pdf';
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    showNotif('✓ تم تنزيل ملف PDF — شاركه واتساب','📄',4000);
+  }catch(e){
+    showNotif('خطأ في إنشاء PDF: '+e.message,'⚠️');
+  }
 }
 function roundRect(x,px,py,w,h,r){
   x.beginPath();
@@ -1253,6 +1293,12 @@ function buildProfile(u){
     <div class="stat-card"><div class="stat-n">${rank||'-'}</div><div class="stat-l">الترتيب</div></div>
     <div class="stat-card"><div class="stat-n" style="color:var(--green)">${st.correct}</div><div class="stat-l">إصابات</div></div>
   </div>`:''}
+  <div class="card">
+    <div class="sec-title"><span class="icon">✏️</span> تغيير الاسم</div>
+    <div style="margin-bottom:.75rem"><label>الاسم الجديد (يظهر في الترتيب)</label><input id="newname" placeholder="${u.name}" value="${u.name}"/></div>
+    <div id="namemsg" class="msg"></div>
+    <button class="btn btn-sm" onclick="changeName()">حفظ الاسم</button>
+  </div>
   <div class="card">
     <div class="sec-title"><span class="icon">🔑</span> تغيير كلمة المرور</div>
     <div style="margin-bottom:.625rem"><label>الحالية</label><input id="pw1" type="password" placeholder="••••••"/></div>
@@ -1697,6 +1743,21 @@ function delResult(mid){
   DB.saveMatches(matches);
   showNotif('تم حذف النتيجة','⚠️');
   showPage('admin');
+}
+function changeName(){
+  const u=DB.currentUser();
+  const newName=document.getElementById('newname')?.value?.trim();
+  if(!newName){showInlineMsg('namemsg','أدخل الاسم الجديد','err');return;}
+  if(newName.length<2){showInlineMsg('namemsg','الاسم قصير جداً','err');return;}
+  if(newName.length>30){showInlineMsg('namemsg','الاسم طويل جداً (30 حرفاً كحد أقصى)','err');return;}
+  if(newName===u.name){showInlineMsg('namemsg','هذا هو اسمك الحالي','err');return;}
+  const users=DB.users(), idx=users.findIndex(x=>x.username===u.username);
+  if(idx<0) return;
+  users[idx].name=newName;
+  DB.saveUsers(users);
+  DB.set('currentUser',{...u,name:newName});
+  showNotif(`✓ تم تغيير اسمك إلى: ${newName}`,'✏️');
+  setTimeout(()=>{showPage('profile');},900);
 }
 function changePw(){
   const u=DB.currentUser();
