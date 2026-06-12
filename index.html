@@ -723,7 +723,12 @@ function renderLogin(){
   <div class="card">
     <div class="sec-title"><span class="icon">🔑</span> دخول</div>
     <div style="margin-bottom:.625rem"><label>اسم المستخدم</label><input id="lu" placeholder="username" dir="ltr" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"/></div>
-    <div style="margin-bottom:.75rem"><label>كلمة المرور</label><input id="lp" type="password" placeholder="••••••" autocapitalize="none" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div style="margin-bottom:.75rem"><label>كلمة المرور</label>
+      <div style="position:relative">
+        <input id="lp" type="password" placeholder="••••••" autocapitalize="none" autocorrect="off" spellcheck="false" style="padding-left:2.5rem" onkeydown="if(event.key==='Enter')doLogin()"/>
+        <button type="button" onclick="togglePw('lp',this)" style="position:absolute;left:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);padding:.2rem">👁️</button>
+      </div>
+    </div>
     <button class="btn" onclick="doLogin()">دخول ←</button>
   </div>
   <div class="divider">أو أنشئ حساباً جديداً</div>
@@ -1632,20 +1637,20 @@ function ensureAdmin(){
   }
 }
 async function doLogin(){
-  const un=document.getElementById('lu')?.value?.trim()?.toLowerCase();
-  const pw=document.getElementById('lp')?.value?.trim();
+  const un=cleanInput(document.getElementById('lu')?.value).toLowerCase();
+  const pw=cleanInput(document.getElementById('lp')?.value);
   if(!un||!pw){showInlineMsg('lmsg','أدخل اسم المستخدم وكلمة المرور','err');return;}
   showInlineMsg('lmsg','⏳ جاري التحقق...','ok');
   const users=await fetchUsersFresh(); // أحدث نسخة من السيرفر دائماً
   ensureAdmin();
-  const u=users.find(x=>x.username?.toLowerCase()===un&&String(x.password).trim()===pw);
+  const u=users.find(x=>cleanInput(x.username).toLowerCase()===un&&cleanInput(x.password)===pw);
   if(!u){showInlineMsg('lmsg','اسم المستخدم أو كلمة المرور خاطئة','err');return;}
   DB.set('currentUser',u);curView='matches';render();
 }
 async function doRegister(){
   const name=document.getElementById('rn')?.value?.trim();
   const un=document.getElementById('ru')?.value?.trim()?.toLowerCase().replace(/\s/g,'');
-  const pw=document.getElementById('rp')?.value?.trim();
+  const pw=cleanInput(document.getElementById('rp')?.value);
   if(!name||!un||!pw){showInlineMsg('lmsg','أكمل جميع الحقول','err');return;}
   if(un.length<3){showInlineMsg('lmsg','اسم المستخدم 3 أحرف على الأقل','err');return;}
   if(pw.length<6){showInlineMsg('lmsg','كلمة المرور 6 أحرف على الأقل','err');return;}
@@ -1862,6 +1867,29 @@ function delResult(mid){
   showNotif('تم حذف النتيجة','⚠️');
   showPage('admin');
 }
+// تنظيف المدخلات من الرموز الخفية (علامات الاتجاه من الواتساب وغيرها)
+function togglePw(id,btn){
+  const inp=document.getElementById(id);
+  if(!inp) return;
+  inp.type=inp.type==='password'?'text':'password';
+  btn.textContent=inp.type==='password'?'👁️':'🙈';
+}
+// تنظيف تلقائي عند اللصق في أي حقل كلمة مرور أو اسم مستخدم
+document.addEventListener('paste',e=>{
+  const t=e.target;
+  if(t&&(t.type==='password'||t.id==='lu'||t.id==='ru')){
+    e.preventDefault();
+    const txt=(e.clipboardData||window.clipboardData).getData('text');
+    const clean=String(txt||'').replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u00a0]/g,'').trim();
+    const start=t.selectionStart??t.value.length, end=t.selectionEnd??t.value.length;
+    t.value=t.value.slice(0,start)+clean+t.value.slice(end);
+  }
+});
+function cleanInput(s){
+  return String(s||'')
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u00a0]/g,'')
+    .trim();
+}
 function generatePassword(){
   // كلمة مرور سهلة القراءة والكتابة: 8 خانات أرقام وحروف واضحة (بدون 0/O/1/l المتشابهة)
   const chars='abcdefghjkmnpqrstuvwxyz23456789';
@@ -1894,15 +1922,18 @@ async function resetUserPassword(username){
   const msg=
 `مرحباً ${target.name} 👋
 
-تمت إعادة تعيين بيانات دخولك لمسابقة توقع كأس العالم 2026:
+تمت إعادة تعيين بيانات دخولك لمسابقة توقع كأس العالم 2026.
 
-اسم المستخدم: ${username}
-كلمة المرور: ${newPw}
+اسم المستخدم:
+${username}
+
+كلمة المرور:
+${newPw}
 
 رابط المسابقة:
 ${window.location.href}
 
-(يمكنك تغيير كلمة المرور بعد الدخول من صفحة "حسابي")`;
+انسخ كلمة المرور وحدها بدون مسافات. يمكنك تغييرها بعد الدخول من صفحة حسابي.`;
   showNotif(`✓ تم الحفظ — أرسل الرسالة للمشارك`,'🔑',3000);
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
@@ -1929,8 +1960,8 @@ async function changeName(){
 }
 async function changePw(){
   const u=DB.currentUser();
-  const o=document.getElementById('pw1')?.value?.trim();
-  const n=document.getElementById('pw2')?.value?.trim();
+  const o=cleanInput(document.getElementById('pw1')?.value);
+  const n=cleanInput(document.getElementById('pw2')?.value);
   if(!o||!n){showInlineMsg('pwmsg','أكمل الحقلين','err');return;}
   if(n.length<6){showInlineMsg('pwmsg','كلمة المرور الجديدة قصيرة جداً','err');return;}
   showInlineMsg('pwmsg','⏳ جاري الحفظ...','ok');
@@ -1938,7 +1969,7 @@ async function changePw(){
     const ok=await mutateUsers(list=>{
       const t=list.find(x=>x.username===u.username);
       if(!t) return false;
-      if(String(t.password).trim()!==o) return 'wrongpw';
+      if(cleanInput(t.password)!==o) return 'wrongpw';
       t.password=n;
       return true;
     });
