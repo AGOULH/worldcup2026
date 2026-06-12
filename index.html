@@ -905,6 +905,16 @@ function buildAdmin(){
   const done=matches.filter(m=>m.official);
   let html=`<div id="amsg" class="msg"></div>
 
+  <div class="card glass" style="border-color:rgba(61,142,240,.35);margin-bottom:1rem">
+    <div class="sec-title" style="border-color:rgba(61,142,240,.2)"><span class="icon">🔄</span> جلب النتائج تلقائياً</div>
+    <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
+      يجلب النتائج المنتهية من الإنترنت ويعرضها عليك <strong style="color:var(--gold)">للمراجعة قبل الاعتماد</strong> — لن تُعتمد أي نتيجة بدون موافقتك.
+    </p>
+    <button class="btn btn-blue btn-sm" style="width:100%" onclick="fetchAutoResults()">🔄 جلب النتائج الآن</button>
+    <div id="auto-msg" class="msg" style="margin-top:.625rem"></div>
+    <div id="auto-preview"></div>
+  </div>
+
   <div class="card glass" style="border-color:rgba(0,200,83,.3);margin-bottom:1rem">
     <div class="sec-title" style="border-color:rgba(0,200,83,.2)"><span class="icon">📊</span> إدخال النتائج عبر ملف Excel</div>
     <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
@@ -1514,6 +1524,105 @@ function savePred(mid){
   showNotif('✓ تم حفظ توقعك!','⭐');
   setTimeout(()=>showPage('matches'),1400);
 }
+// ── AUTO FETCH RESULTS (Cloudflare Worker) ────────────────────
+// ضع رابط الـ Worker الخاص بك هنا بعد إنشائه على Cloudflare:
+const WORKER_URL='https://worldcup-results.agoul-hasan.workers.dev/';
+
+// خريطة أسماء الفرق: الإنجليزية (من TheSportsDB) → العربية (في الموقع)
+const TEAM_MAP={
+'mexico':'المكسيك','south africa':'جنوب أفريقيا','south korea':'كوريا الجنوبية','korea republic':'كوريا الجنوبية',
+'czech republic':'التشيك','czechia':'التشيك','canada':'كندا','bosnia and herzegovina':'البوسنة','bosnia':'البوسنة',
+'usa':'الولايات المتحدة','united states':'الولايات المتحدة','paraguay':'باراغواي','qatar':'قطر','switzerland':'سويسرا',
+'brazil':'البرازيل','morocco':'المغرب','haiti':'هايتي','scotland':'اسكتلندا','australia':'أستراليا','turkey':'تركيا',
+'turkiye':'تركيا','germany':'ألمانيا','curacao':'كوراساو','netherlands':'هولندا','japan':'اليابان',
+'ivory coast':'كوت ديفوار',"cote d'ivoire":'كوت ديفوار','ecuador':'الإكوادور','sweden':'السويد','tunisia':'تونس',
+'spain':'إسبانيا','cape verde':'الرأس الأخضر','cabo verde':'الرأس الأخضر','belgium':'بلجيكا','egypt':'مصر',
+'saudi arabia':'السعودية','uruguay':'أوروغواي','iran':'إيران','new zealand':'نيوزيلندا','france':'فرنسا',
+'senegal':'السنغال','iraq':'العراق','norway':'النرويج','argentina':'الأرجنتين','algeria':'الجزائر',
+'austria':'النمسا','jordan':'الأردن','portugal':'البرتغال','dr congo':'الكونغو','congo dr':'الكونغو','congo':'الكونغو',
+'england':'إنجلترا','croatia':'كرواتيا','ghana':'غانا','panama':'بنما','uzbekistan':'أوزبكستان','colombia':'كولومبيا'
+};
+function mapTeam(en){
+  if(!en) return null;
+  return TEAM_MAP[en.toLowerCase().trim()]||null;
+}
+
+async function fetchAutoResults(){
+  if(WORKER_URL.includes('PUT_YOUR')){
+    showInlineMsg('auto-msg','⚠️ لم يتم ضبط رابط الـ Worker بعد — راجع التعليمات','err');return;
+  }
+  showInlineMsg('auto-msg','⏳ جاري جلب النتائج...','ok');
+  try{
+    const res=await fetch(WORKER_URL);
+    const data=await res.json();
+    if(!data.ok||!data.results){showInlineMsg('auto-msg','تعذر جلب البيانات من المصدر','err');return;}
+    const finished=data.results.filter(r=>r.finished&&r.homeScore!==null&&r.awayScore!==null);
+    if(!finished.length){showInlineMsg('auto-msg','لا توجد نتائج منتهية في المصدر حتى الآن','err');return;}
+
+    // مطابقة النتائج مع مباريات الموقع (بالاسم العربي + غير محسومة)
+    const matches=DB.matches();
+    const proposals=[];
+    finished.forEach(r=>{
+      const homeAr=mapTeam(r.home), awayAr=mapTeam(r.away);
+      if(!homeAr||!awayAr) return;
+      const m=matches.find(x=>!x.official
+        && teamName(x.t1)===homeAr && teamName(x.t2)===awayAr);
+      if(m) proposals.push({m,score1:r.homeScore,score2:r.awayScore,src:`${r.home} ${r.homeScore}-${r.awayScore} ${r.away}`});
+    });
+
+    if(!proposals.length){
+      showInlineMsg('auto-msg','✓ تم الجلب — لا توجد نتائج جديدة تنتظر الاعتماد','ok');
+      document.getElementById('auto-preview').innerHTML='';
+      return;
+    }
+
+    // عرض المقترحات للمراجعة قبل الاعتماد
+    window._autoProposals=proposals;
+    let html=`<div style="margin-top:.75rem">
+      <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.5rem">⚠️ راجع النتائج قبل الاعتماد (${proposals.length}):</div>`;
+    proposals.forEach((p,i)=>{
+      html+=`<div class="card2" style="display:flex;align-items:center;gap:.5rem;padding:.6rem .75rem;margin-bottom:.4rem">
+        <div style="flex:1">
+          <div style="font-size:.78rem;font-weight:600">${teamFlag(p.m.t1)} ${teamName(p.m.t1)} <strong style="color:var(--gold2)">${p.score1}-${p.score2}</strong> ${teamName(p.m.t2)} ${teamFlag(p.m.t2)}</div>
+          <div style="font-size:.64rem;color:var(--muted)">المصدر: ${p.src}</div>
+        </div>
+        <button class="btn btn-green btn-sm" onclick="approveAutoResult(${i})">✔ اعتماد</button>
+      </div>`;
+    });
+    html+=`<button class="btn btn-green btn-sm" style="width:100%;margin-top:.4rem" onclick="approveAllAutoResults()">✔✔ اعتماد الكل (${proposals.length})</button></div>`;
+    document.getElementById('auto-preview').innerHTML=html;
+    showInlineMsg('auto-msg',`✓ وُجدت ${proposals.length} نتيجة — راجعها واعتمدها`,'ok');
+  }catch(e){
+    showInlineMsg('auto-msg','خطأ في الاتصال: '+e.message,'err');
+  }
+}
+function approveAutoResult(i){
+  const p=window._autoProposals?.[i];
+  if(!p) return;
+  const matches=DB.matches();
+  const m=matches.find(x=>x.id===p.m.id);
+  if(!m) return;
+  m.r1=p.score1;m.r2=p.score2;m.official=true;
+  DB.saveMatches(matches);
+  showNotif(`✓ اعتُمدت: ${teamName(m.t1)} ${m.r1}-${m.r2} ${teamName(m.t2)}`,'🏆');
+  window._autoProposals.splice(i,1);
+  setTimeout(()=>showPage('admin'),800);
+}
+function approveAllAutoResults(){
+  const props=window._autoProposals||[];
+  if(!props.length) return;
+  const matches=DB.matches();
+  let n=0;
+  props.forEach(p=>{
+    const m=matches.find(x=>x.id===p.m.id);
+    if(m){m.r1=p.score1;m.r2=p.score2;m.official=true;n++;}
+  });
+  DB.saveMatches(matches);
+  window._autoProposals=[];
+  showNotif(`✓ اعتُمدت ${n} نتيجة وتوزّعت النقاط 🎉`,'🏆',4000);
+  setTimeout(()=>showPage('admin'),1000);
+}
+
 // ── EXCEL IMPORT ──────────────────────────────────────────────
 function parseResult(val){
   if(val===null||val===undefined) return null;
