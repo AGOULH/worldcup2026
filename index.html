@@ -744,7 +744,6 @@ function renderLogin(){
   <div style="text-align:center;margin-top:.875rem">
     <button class="btn btn-outline btn-sm" style="width:auto" onclick="curView='welcome';render()">← قراءة القوانين</button>
   </div>
-  <p style="text-align:center;font-size:.65rem;color:var(--muted);margin-top:.625rem">المدير: admin / admin2026</p>
   </div>`;
 }
 
@@ -1012,7 +1011,6 @@ function buildAdmin(){
         <div style="font-size:1rem;font-weight:700;color:var(--gold);font-family:'Cairo',sans-serif">${st.total}</div>
         <div style="font-size:.6rem;color:var(--muted)">نقطة</div>
       </div>
-      <button class="btn btn-outline btn-sm" style="flex-shrink:0;padding:.3rem .5rem" onclick="showUserPassword('${u.username}')" title="عرض كلمة المرور الحالية">👁️</button>
       <button class="btn btn-outline btn-sm" style="flex-shrink:0;padding:.3rem .5rem" onclick="resetUserPassword('${u.username}')" title="إعادة تعيين كلمة المرور">🔑</button>
     </div>`;
   });
@@ -1395,6 +1393,7 @@ function roundRect(x,px,py,w,h,r){
 function buildProfile(u){
   const st=userStats(u.username), lb=leaderboard(), rank=lb.findIndex(x=>x.username===u.username)+1;
   return `
+  ${u._mustChangePassword?`<div class="msg msg-err show" style="margin-bottom:.875rem">⚠️ حسابك يستخدم كلمة مرور افتراضية — غيّرها الآن من الأسفل قبل الاستمرار.</div>`:''}
   <div style="text-align:center;padding:1.25rem 0 .875rem">
     <div class="avatar">${u.name[0].toUpperCase()}</div>
     <div style="font-size:1.1rem;font-weight:700">${u.name}</div>
@@ -1607,12 +1606,13 @@ function drawDashboardCharts(){
 // PAGE ROUTER
 // ═══════════════════════════════════════
 function showPage(id){
+  const u=DB.currentUser();
+  if(u?._mustChangePassword&&id!=='profile') id='profile';
   curView=id;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   const page=document.getElementById('page-'+id);
   const tab=document.getElementById('tab-'+id);
-  const u=DB.currentUser();
   if(!page) return;
   if(id==='dashboard')  page.innerHTML=buildDashboard(u);
   if(id==='matches')    page.innerHTML=buildMatchesPage(u);
@@ -1630,11 +1630,21 @@ function setMF(f){matchFilter=f;showPage('matches');}
 // ═══════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════
+// SHA-256 (hex) — أداة عامة للتحقق دون تخزين/كتابة قيم حساسة كنص صريح
+async function sha256Hex(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+// hash لكلمة مرور admin الافتراضية القديمة — لاكتشاف الحسابات التي لم تُغيَّر بعد فقط (لا تُكتب القيمة الأصلية هنا)
+const LEGACY_DEFAULT_ADMIN_HASH='6051fc84a7a0d74c225fb18a496b09952da5642e60723ecae543298edd7d82d6';
+
 function ensureAdmin(){
   let users=DB.users();
   if(!users.find(u=>u.username==='admin')){
-    users.push({username:'admin',password:'admin2026',name:'حسن العاقول',isAdmin:true});
+    const pw=generatePassword();
+    users.push({username:'admin',password:pw,name:'حسن العاقول',isAdmin:true,mustChangePassword:true});
     DB.saveUsers(users);
+    console.info('🔑 تم إنشاء حساب admin جديد — كلمة المرور المؤقتة: '+pw+' (سيُطلب تغييرها فوراً عند أول دخول)');
   }
 }
 async function doLogin(){
@@ -1646,7 +1656,10 @@ async function doLogin(){
   ensureAdmin();
   const u=users.find(x=>cleanInput(x.username).toLowerCase()===un&&cleanInput(x.password)===pw);
   if(!u){showInlineMsg('lmsg','اسم المستخدم أو كلمة المرور خاطئة','err');return;}
-  DB.set('currentUser',u);curView='matches';render();
+  let mustChange=!!u.mustChangePassword;
+  if(u.username==='admin'&&!mustChange&&await sha256Hex(pw)===LEGACY_DEFAULT_ADMIN_HASH) mustChange=true;
+  DB.set('currentUser',{...u,_mustChangePassword:mustChange});
+  curView=mustChange?'profile':'matches';render();
 }
 async function doRegister(){
   const name=document.getElementById('rn')?.value?.trim();
@@ -1659,7 +1672,11 @@ async function doRegister(){
   const nu={username:un,password:pw,name,isAdmin:false};
   try{
     const ok=await mutateUsers(list=>{
-      if(!list.find(x=>x.username==='admin')) list.push({username:'admin',password:'admin2026',name:'حسن العاقول',isAdmin:true});
+      if(!list.find(x=>x.username==='admin')){
+        const pw=generatePassword();
+        list.push({username:'admin',password:pw,name:'حسن العاقول',isAdmin:true,mustChangePassword:true});
+        console.info('🔑 تم إنشاء حساب admin جديد — كلمة المرور المؤقتة: '+pw+' (سيُطلب تغييرها فوراً عند أول دخول)');
+      }
       if(list.find(x=>x.username?.toLowerCase()===un)) return false;
       list.push(nu);
       return true;
@@ -1898,15 +1915,6 @@ function generatePassword(){
   for(let i=0;i<8;i++) pw+=chars[Math.floor(Math.random()*chars.length)];
   return pw;
 }
-async function showUserPassword(username){
-  const admin=DB.currentUser();
-  if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
-  showNotif('⏳ جاري القراءة من السيرفر...','👁️',2000);
-  const users=await fetchUsersFresh();
-  const u=users.find(x=>x.username===username);
-  if(!u){alert('المستخدم غير موجود في قاعدة البيانات!');return;}
-  alert(`بيانات الدخول الحالية (من السيرفر مباشرة):\n\nاسم المستخدم: ${u.username}\nكلمة المرور: ${u.password}\n\nطول كلمة المرور: ${String(u.password).length} حرف`);
-}
 async function resetUserPassword(username){
   const admin=DB.currentUser();
   if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
@@ -1993,13 +2001,18 @@ async function changePw(){
       if(!t) return false;
       if(cleanInput(t.password)!==o) return 'wrongpw';
       t.password=n;
+      delete t.mustChangePassword;
       return true;
     });
     if(ok==='wrongpw'){showInlineMsg('pwmsg','كلمة المرور الحالية خاطئة','err');return;}
     if(ok===false){showInlineMsg('pwmsg','تعذر إيجاد حسابك','err');return;}
   }catch(e){showInlineMsg('pwmsg','تعذر الحفظ — تحقق من الإنترنت','err');return;}
-  DB.set('currentUser',{...u,password:n});
+  DB.set('currentUser',{...u,password:n,_mustChangePassword:false});
   showInlineMsg('pwmsg','✓ تم تغيير كلمة المرور','ok');
+  if(u._mustChangePassword){
+    showNotif('✓ تم تأمين الحساب','🔒',3000);
+    setTimeout(()=>showPage('dashboard'),1200);
+  }
 }
 function showInlineMsg(id,txt,type){
   const el=document.getElementById(id);
