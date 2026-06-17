@@ -948,6 +948,17 @@ function buildAdmin(){
   const done=matches.filter(m=>m.official);
   let html=`<div id="amsg" class="msg"></div>
 
+  <div class="card glass" style="border-color:rgba(201,168,76,.35);margin-bottom:1rem">
+    <div class="sec-title"><span class="icon">📑</span> التقرير اليومي</div>
+    <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
+      تقرير شامل بكل نتائج اليوم والترتيب الحالي للمشاركين — جاهز للمشاركة عبر الواتساب كـ PDF.
+    </p>
+    <div class="two-col">
+      <button class="btn btn-sm" onclick="exportDailyReport('today')">📄 تقرير اليوم</button>
+      <button class="btn btn-outline btn-sm" onclick="exportDailyReport('all')">📚 تقرير شامل</button>
+    </div>
+  </div>
+
   <div class="card glass" style="border-color:rgba(61,142,240,.35);margin-bottom:1rem">
     <div class="sec-title" style="border-color:rgba(61,142,240,.2)"><span class="icon">🔄</span> جلب النتائج تلقائياً</div>
     <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
@@ -1220,6 +1231,45 @@ const HYPE_BOTTOM=[ // عبارات لطيفة للمركز الأخير
 ];
 // منع التكرار: يتذكّر آخر عبارة لكل قائمة
 const _lastHype={};
+
+// ═══ مولّد عبارات إضافي: يركّب آلاف العبارات من قوالب ومكوّنات ═══
+const _G={
+  topSubj:['المتصدر','البطل','صاحب الصدارة','قائد الترتيب','الأول','الرقم واحد','نجم المسابقة','أسطورة التوقعات','ملك النقاط','صاحب العرش'],
+  topVerb:['يحلّق عالياً','يتألق','يبدع','يقود بثقة','يفرض سيطرته','يكتب التاريخ','يخطف الأنظار','يثبت جدارته','يواصل تألقه','يصنع الفارق'],
+  topTail:['ولا منافس','بلا منازع','وعينه على الكأس','والجميع يلاحقه','بجدارة واستحقاق','كما يفعل الكبار','في كل جولة','حتى النهاية','بأعصاب باردة','بموهبة فذة'],
+  raceMid:['يشتعل','يحتدم','يقترب من الحسم','يقلب الموازين','لا يرحم','يحبس الأنفاس','يفاجئ الجميع','يتغيّر كل لحظة','يعد بالمزيد','على صفيح ساخن'],
+  raceTail:['ومن يخطئ يدفع الثمن','والمفاجآت قادمة','فاستعدوا','لا مكان للضعفاء','والقادم أعظم','حتى آخر صافرة','والكل يترقب','فابقوا متيقظين','والحظوظ مفتوحة','والإثارة مستمرة'],
+  botStart:['لا تيأس','واصل المحاولة','الأمل موجود','ارفع رأسك','لا تستسلم','ابتسم','ثق بنفسك','اصبر','القادم أفضل','حظك سيتغير'],
+  botTail:['فالبطولة طويلة','والعودة ممكنة','والمعجزات تحدث','فكل بداية صعبة','والزمن كفيل بالباقي','فالكرة لا تنتهي','والريمونتادا واردة','فالأبطال يعودون','والجولة القادمة لك','فلا شيء مستحيل'],
+  emoT:['🔥','🏆','👑','⚡','🌟','💪','🎯','🦅','✨','🚀'],
+  emoR:['🔥','⚔️','📣','🎲','💢','😮‍💨','🌍','⚙️','🎺','🏁'],
+  emoB:['💪','🌱','📈','🍀','😊','🕯️','🔄','📚','⏳','🙂']
+};
+function _pick(a){return a[Math.floor(Math.random()*a.length)]}
+function genTop(){
+  const f=[
+    ()=>`${_pick(_G.topSubj)} ${_pick(_G.topVerb)} ${_pick(_G.topTail)} ${_pick(_G.emoT)}`,
+    ()=>`${_pick(_G.topVerb)} ${_pick(_G.topTail)} ${_pick(_G.emoT)}`,
+    ()=>`${_pick(_G.topSubj)} ${_pick(_G.topVerb)} ${_pick(_G.emoT)}`
+  ];
+  return _pick(f)();
+}
+function genRace(){
+  const f=[
+    ()=>`السباق ${_pick(_G.raceMid)} ${_pick(_G.raceTail)} ${_pick(_G.emoR)}`,
+    ()=>`الترتيب ${_pick(_G.raceMid)} ${_pick(_G.raceTail)} ${_pick(_G.emoR)}`,
+    ()=>`المنافسة ${_pick(_G.raceMid)} ${_pick(_G.raceTail)} ${_pick(_G.emoR)}`
+  ];
+  return _pick(f)();
+}
+function genBottom(){
+  return `${_pick(_G.botStart)}... ${_pick(_G.botTail)} ${_pick(_G.emoB)}`;
+}
+// يدمج القوائم اليدوية مع المولّد (احتمال 50% لكل منهما) لتنوّع شبه لا نهائي
+function hypeTop(){ return Math.random()<0.5 ? pickHype(HYPE_TOP,'top') : genTop(); }
+function hypeRace(){ return Math.random()<0.5 ? pickHype(HYPE_RACE,'race') : genRace(); }
+function hypeBottom(){ return Math.random()<0.5 ? pickHype(HYPE_BOTTOM,'bottom') : genBottom(); }
+
 function pickHype(arr,key){
   if(arr.length<=1) return arr[0];
   let pick, tries=0;
@@ -1282,18 +1332,18 @@ function buildLeaderboardCanvas(){
   // Hype line (rotating race phrase)
   x.fillStyle='#C9A84C';
   x.font='bold 27px Tajawal, Arial';
-  x.fillText(pickHype(HYPE_RACE,'race'),W/2,238);
+  x.fillText(hypeRace(),W/2,238);
   // عبارة المركز الأخير في العنوان
   if(lb.length>=3){
     const last=lb[lb.length-1];
     x.fillStyle='#7a94b4';
     x.font='23px Tajawal, Arial';
-    x.fillText(`${last.name}: ${pickHype(HYPE_BOTTOM,'bottom')}`,W/2,282);
+    x.fillText(`${last.name}: ${hypeBottom()}`,W/2,282);
   }
 
   // Rows
   const medals=['🥇','🥈','🥉'];
-  const rankHypes=[pickHype(HYPE_TOP,'top'),pickHype(HYPE_SECOND,'second'),pickHype(HYPE_THIRD,'third')];
+  const rankHypes=[hypeTop(),pickHype(HYPE_SECOND,'second'),pickHype(HYPE_THIRD,'third')];
   const hypeColors=['#FFD700','#C0C0C0','#CD7F32'];
   const maxPts=lb[0].total||1;
   let y=headerH;
@@ -1385,6 +1435,154 @@ function exportLeaderboardImage(){
     URL.revokeObjectURL(url);
     showNotif('✓ تم تنزيل الصورة — شاركها واتساب','📸',4000);
   },'image/png');
+}
+
+// ═══ تقرير يومي / شامل بالنتائج + الترتيب ═══
+function buildReportCanvas(mode){
+  const matches=DB.matches().filter(m=>m.official);
+  if(!matches.length) return null;
+  const lb=leaderboard();
+  const SCALE=2, W=900;
+  const PAD=40;
+
+  // فلترة حسب الوضع
+  const todayStr=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Riyadh'}); // YYYY-MM-DD
+  function matchDateStr(m){return new Date(m.ts).toLocaleDateString('en-CA',{timeZone:'Asia/Riyadh'});}
+  let shown=matches;
+  if(mode==='today'){
+    shown=matches.filter(m=>matchDateStr(m)===todayStr);
+  }
+  // تجميع حسب التاريخ (تنازلي: الأحدث أولاً)
+  const byDate={};
+  shown.forEach(m=>{(byDate[matchDateStr(m)]=byDate[matchDateStr(m)]||[]).push(m);});
+  const dates=Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
+
+  // حساب الارتفاع
+  const headerH=200;
+  let bodyH=0;
+  dates.forEach(d=>{ bodyH+=54; bodyH+=byDate[d].length*92; bodyH+=16; });
+  const lbTitleH=64;
+  const lbH=Math.min(lb.length,12)*60+20;
+  const footerH=70;
+  const H=headerH+bodyH+lbTitleH+lbH+footerH;
+
+  const cv=document.createElement('canvas');
+  cv.width=W*SCALE; cv.height=H*SCALE;
+  const x=cv.getContext('2d');
+  x.scale(SCALE,SCALE);
+
+  // خلفية
+  const bg=x.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#060d1a');bg.addColorStop(.5,'#0d1e38');bg.addColorStop(1,'#060d1a');
+  x.fillStyle=bg;x.fillRect(0,0,W,H);
+  x.fillStyle='rgba(255,255,255,.2)';
+  for(let i=0;i<50;i++){x.beginPath();x.arc(Math.random()*W,Math.random()*H,Math.random()*1.3+.4,0,7);x.fill();}
+  const glow=x.createRadialGradient(W/2,0,40,W/2,0,380);
+  glow.addColorStop(0,'rgba(201,168,76,.28)');glow.addColorStop(1,'transparent');
+  x.fillStyle=glow;x.fillRect(0,0,W,380);
+
+  // العنوان
+  x.textAlign='center';
+  x.font='52px serif';x.fillText('📋',W/2,80);
+  x.fillStyle='#F0D080';x.font='bold 40px Tajawal, Arial';
+  x.fillText(mode==='today'?'تقرير اليوم':'التقرير الشامل',W/2,138);
+  const dStr=new Date().toLocaleDateString('ar-SA',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Riyadh'});
+  const tStr=new Date().toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Riyadh'});
+  x.fillStyle='#7a94b4';x.font='22px Tajawal, Arial';
+  x.fillText(`${dStr} - ${tStr}`,W/2,176);
+
+  let y=headerH;
+  if(!dates.length){
+    x.fillStyle='#7a94b4';x.font='24px Tajawal, Arial';x.textAlign='center';
+    x.fillText('لا توجد نتائج محسومة في هذا اليوم',W/2,y+40);
+    y+=80;
+  }
+  dates.forEach(d=>{
+    // عنوان التاريخ
+    const dispDate=new Date(d+'T12:00:00').toLocaleDateString('ar-SA',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Riyadh'});
+    x.fillStyle='rgba(201,168,76,.13)';
+    roundRect(x,PAD,y+8,W-2*PAD,38,10);x.fill();
+    x.textAlign='right';x.fillStyle='#F0D080';x.font='bold 22px Tajawal, Arial';
+    x.fillText('📅 '+dispDate,W-PAD-16,y+34);
+    y+=54;
+    // المباريات
+    byDate[d].forEach(m=>{
+      x.fillStyle='rgba(16,29,48,.85)';
+      roundRect(x,PAD,y+6,W-2*PAD,80,14);x.fill();
+      x.strokeStyle='rgba(28,45,69,.9)';x.lineWidth=1.5;
+      roundRect(x,PAD,y+6,W-2*PAD,80,14);x.stroke();
+      // أسماء + نتيجة
+      x.textAlign='center';
+      x.fillStyle='#d8e8f8';x.font='bold 26px Tajawal, Arial';
+      x.fillText(`${teamName(m.t1)}  ${m.r1} - ${m.r2}  ${teamName(m.t2)}`,W/2,y+38);
+      // كم أصاب النتيجة
+      const preds=DB.predictions(), users=DB.users().filter(u=>!u.isAdmin);
+      let exact=0,winner=0;
+      users.forEach(u=>{
+        const p=preds[u.username]?.[m.id];
+        if(!p) return;
+        const pts=calcPts(p,m);
+        if(pts===5)exact++; else if(pts===2)winner++;
+      });
+      x.fillStyle='#7a94b4';x.font='17px Tajawal, Arial';
+      x.fillText(`⭐ ${exact} أصابوا النتيجة  |  ✅ ${winner} أصابوا الفائز`,W/2,y+66);
+      y+=92;
+    });
+    y+=16;
+  });
+
+  // الترتيب الحالي
+  x.textAlign='center';
+  x.fillStyle='#F0D080';x.font='bold 30px Tajawal, Arial';
+  x.fillText('🏆 الترتيب الحالي',W/2,y+44);
+  y+=lbTitleH;
+  const medals=['🥇','🥈','🥉'];
+  lb.slice(0,12).forEach((u,i)=>{
+    x.fillStyle=i===0?'rgba(201,168,76,.13)':'rgba(16,29,48,.8)';
+    roundRect(x,PAD,y+4,W-2*PAD,52,12);x.fill();
+    x.textAlign='center';x.font=i<3?'26px serif':'bold 22px Tajawal, Arial';
+    x.fillStyle=i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#5a7494';
+    x.fillText(i<3?medals[i]:String(i+1),W-PAD-40,y+38);
+    x.textAlign='right';x.fillStyle=i===0?'#F0D080':'#d8e8f8';x.font='bold 24px Tajawal, Arial';
+    x.fillText(u.name,W-PAD-90,y+38);
+    x.textAlign='left';x.fillStyle='#C9A84C';x.font='bold 30px Cairo, Tajawal, Arial';
+    x.fillText(String(u.total),PAD+24,y+40);
+    x.fillStyle='#7a94b4';x.font='15px Tajawal, Arial';
+    x.fillText('نقطة',PAD+80,y+40);
+    y+=60;
+  });
+
+  // التذييل
+  x.textAlign='center';x.fillStyle='#5a7494';x.font='19px Tajawal, Arial';
+  x.fillText('مسابقة توقع كأس العالم 2026 | إعداد: حسن العاقول',W/2,y+40);
+
+  return {cv,W,H};
+}
+
+async function exportDailyReport(mode){
+  if(typeof window.jspdf==='undefined'){showNotif('مكتبة PDF لم تُحمّل — تحقق من الإنترنت','⚠️');return;}
+  showNotif('جاري إنشاء التقرير...','📑',2500);
+  const built=buildReportCanvas(mode);
+  if(!built){showNotif('لا توجد نتائج محسومة بعد','⚠️');return;}
+  try{
+    const {cv,W,H}=built;
+    const imgData=cv.toDataURL('image/jpeg',0.92);
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'px',format:[W,H],compress:true});
+    pdf.addImage(imgData,'JPEG',0,0,W,H);
+    const fname=mode==='today'?'تقرير-اليوم.pdf':'التقرير-الشامل.pdf';
+    const blob=pdf.output('blob');
+    const file=new File([blob],fname,{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file],title:'تقرير مسابقة كأس العالم 2026'}); return; }catch(e){}
+    }
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=fname;
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    showNotif('✓ تم تنزيل التقرير — شاركه واتساب','📑',4000);
+  }catch(e){
+    showNotif('خطأ في إنشاء التقرير: '+e.message,'⚠️');
+  }
 }
 
 async function exportLeaderboardPDF(){
@@ -1736,21 +1934,37 @@ const WORKER_URL='https://worldcup-results.agoul-hasan.workers.dev/';
 
 // خريطة أسماء الفرق: الإنجليزية (من TheSportsDB) → العربية (في الموقع)
 const TEAM_MAP={
-'mexico':'المكسيك','south africa':'جنوب أفريقيا','south korea':'كوريا الجنوبية','korea republic':'كوريا الجنوبية',
-'czech republic':'التشيك','czechia':'التشيك','canada':'كندا','bosnia and herzegovina':'البوسنة','bosnia':'البوسنة',
-'usa':'الولايات المتحدة','united states':'الولايات المتحدة','paraguay':'باراغواي','qatar':'قطر','switzerland':'سويسرا',
+'mexico':'المكسيك','south africa':'جنوب أفريقيا','south korea':'كوريا الجنوبية','korea republic':'كوريا الجنوبية','korea':'كوريا الجنوبية','republic of korea':'كوريا الجنوبية',
+'czech republic':'التشيك','czechia':'التشيك','canada':'كندا','bosnia and herzegovina':'البوسنة','bosnia':'البوسنة','bosnia herzegovina':'البوسنة',
+'usa':'الولايات المتحدة','united states':'الولايات المتحدة','united states of america':'الولايات المتحدة','paraguay':'باراغواي','qatar':'قطر','switzerland':'سويسرا',
 'brazil':'البرازيل','morocco':'المغرب','haiti':'هايتي','scotland':'اسكتلندا','australia':'أستراليا','turkey':'تركيا',
-'turkiye':'تركيا','germany':'ألمانيا','curacao':'كوراساو','netherlands':'هولندا','japan':'اليابان',
-'ivory coast':'كوت ديفوار',"cote d'ivoire":'كوت ديفوار','ecuador':'الإكوادور','sweden':'السويد','tunisia':'تونس',
+'turkiye':'تركيا','germany':'ألمانيا','curacao':'كوراساو','netherlands':'هولندا','holland':'هولندا','japan':'اليابان',
+'ivory coast':'كوت ديفوار',"cote d'ivoire":'كوت ديفوار','cote divoire':'كوت ديفوار','ecuador':'الإكوادور','sweden':'السويد','tunisia':'تونس',
 'spain':'إسبانيا','cape verde':'الرأس الأخضر','cabo verde':'الرأس الأخضر','belgium':'بلجيكا','egypt':'مصر',
-'saudi arabia':'السعودية','uruguay':'أوروغواي','iran':'إيران','new zealand':'نيوزيلندا','france':'فرنسا',
+'saudi arabia':'السعودية','ksa':'السعودية','uruguay':'أوروغواي','iran':'إيران','ir iran':'إيران','islamic republic of iran':'إيران','new zealand':'نيوزيلندا','france':'فرنسا',
 'senegal':'السنغال','iraq':'العراق','norway':'النرويج','argentina':'الأرجنتين','algeria':'الجزائر',
-'austria':'النمسا','jordan':'الأردن','portugal':'البرتغال','dr congo':'الكونغو','congo dr':'الكونغو','congo':'الكونغو',
-'england':'إنجلترا','croatia':'كرواتيا','ghana':'غانا','panama':'بنما','uzbekistan':'أوزبكستان','colombia':'كولومبيا'
+'austria':'النمسا','jordan':'الأردن','portugal':'البرتغال','dr congo':'الكونغو','congo dr':'الكونغو','congo':'الكونغو','democratic republic of the congo':'الكونغو','dr-congo':'الكونغو',
+'england':'إنجلترا','croatia':'كرواتيا','ghana':'غانا','panama':'بنما','uzbekistan':'أوزبكستان','colombia':'كولومبيا',
+'italy':'إيطاليا','poland':'بولندا','denmark':'الدنمارك','serbia':'صربيا','nigeria':'نيجيريا','cameroon':'الكاميرون',
+'mali':'مالي','ukraine':'أوكرانيا','wales':'ويلز','peru':'بيرو','chile':'تشيلي','costa rica':'كوستاريكا',
+'jamaica':'جامايكا','honduras':'هندوراس','greece':'اليونان','romania':'رومانيا','hungary':'المجر','slovakia':'سلوفاكيا',
+'slovenia':'سلوفينيا','ireland':'أيرلندا','republic of ireland':'أيرلندا','northern ireland':'أيرلندا الشمالية',
+'venezuela':'فنزويلا','bolivia':'بوليفيا','united arab emirates':'الإمارات','uae':'الإمارات','oman':'عُمان','bahrain':'البحرين','kuwait':'الكويت',
+'china':'الصين','china pr':'الصين','india':'الهند','thailand':'تايلاند','vietnam':'فيتنام','indonesia':'إندونيسيا',
+'angola':'أنغولا','zambia':'زامبيا','kenya':'كينيا','uganda':'أوغندا','burkina faso':'بوركينا فاسو','gabon':'الغابون',
+'panama':'بنما','el salvador':'السلفادور','guatemala':'غواتيمالا','new caledonia':'كاليدونيا الجديدة','suriname':'سورينام'
 };
 function mapTeam(en){
   if(!en) return null;
-  return TEAM_MAP[en.toLowerCase().trim()]||null;
+  // تطبيع: حروف صغيرة + إزالة المسافات الزائدة والرموز الخفية
+  let k=String(en).toLowerCase()
+    .replace(/[\u200b-\u200f\u202a-\u202e]/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+  if(TEAM_MAP[k]) return TEAM_MAP[k];
+  // محاولة بدون أحرف غير أبجدية
+  const k2=k.replace(/[^a-z ]/g,'').trim();
+  return TEAM_MAP[k2]||null;
 }
 
 async function fetchAutoResults(){
@@ -1763,25 +1977,42 @@ async function fetchAutoResults(){
     const data=await res.json();
     if(!data.ok||!data.results){showInlineMsg('auto-msg','تعذر جلب البيانات من المصدر','err');return;}
     const finished=data.results.filter(r=>r.finished&&r.homeScore!==null&&r.awayScore!==null);
-    if(!finished.length){showInlineMsg('auto-msg','لا توجد نتائج منتهية في المصدر حتى الآن','err');return;}
+    if(!finished.length){
+      const srcNote=data.sources?`\n(المصادر: SportsDB=${data.sources.sportsdb?'✓':'✗'}, openfootball=${data.sources.openfootball?'✓':'✗'})`:'';
+      showInlineMsg('auto-msg','لا توجد نتائج منتهية في المصدر حتى الآن'+srcNote,'err');return;
+    }
 
-    // مطابقة النتائج مع مباريات الموقع (بالاسم العربي + غير محسومة)
+    // مطابقة مرنة: تقبل أي ترتيب للفريقين + تجمع غير المطابق للتشخيص
     const matches=DB.matches();
     const proposals=[];
+    const unmatched=[];
     finished.forEach(r=>{
       const homeAr=mapTeam(r.home), awayAr=mapTeam(r.away);
-      if(!homeAr||!awayAr) return;
-      const m=matches.find(x=>!x.official
-        && teamName(x.t1)===homeAr && teamName(x.t2)===awayAr);
+      if(!homeAr||!awayAr){
+        unmatched.push(`${r.home} / ${r.away}`);
+        return;
+      }
+      // جرّب الترتيب الطبيعي (r.home=t1) ثم المعكوس
+      let m=matches.find(x=>!x.official && teamName(x.t1)===homeAr && teamName(x.t2)===awayAr);
+      let s1=r.homeScore, s2=r.awayScore;
+      if(!m){
+        m=matches.find(x=>!x.official && teamName(x.t1)===awayAr && teamName(x.t2)===homeAr);
+        if(m){ s1=r.awayScore; s2=r.homeScore; } // اعكس النتيجة لتطابق ترتيب الموقع
+      }
       if(m) proposals.push({
-        m, score1:r.homeScore, score2:r.awayScore,
+        m, score1:s1, score2:s2,
         src:`${r.home} ${r.homeScore}-${r.awayScore} ${r.away}`,
         verified:!!r.verified, hasSecond:!!r.hasSecondSource, secondScore:r.secondScore||null
       });
     });
 
     if(!proposals.length){
-      showInlineMsg('auto-msg','✓ تم الجلب — لا توجد نتائج جديدة تنتظر الاعتماد','ok');
+      let msg='✓ تم الجلب — لا توجد نتائج جديدة تنتظر الاعتماد';
+      if(unmatched.length){
+        msg+=`\n\n⚠️ ${unmatched.length} مباراة لم تُطابق أسماؤها:\n`+unmatched.slice(0,6).join('\n');
+        msg+='\n\n(قد تكون النتائج محسومة مسبقاً، أو تحتاج إضافة أسماء الفرق)';
+      }
+      showInlineMsg('auto-msg',msg,unmatched.length?'err':'ok');
       document.getElementById('auto-preview').innerHTML='';
       return;
     }
