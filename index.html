@@ -846,12 +846,20 @@ function buildMatchesPage(u){
                 <div style="text-align:center;color:var(--muted);font-weight:700;font-size:1rem">-</div>
                 <input type="number" class="score-input" id="p2-${m.id}" min="0" max="20" value="${up.r2??''}" placeholder="0"/>
               </div>
-              <button class="btn btn-sm" style="margin-top:.5rem;width:100%" onclick="savePred('${m.id}')">💾 حفظ التوقع</button>
+              <button class="btn btn-outline btn-sm" style="margin-top:.5rem;width:100%" onclick="savePred('${m.id}')">💾 حفظ هذا التوقع</button>
             </div>`}
       </div>`;
     });
   }
-  return html+'</div>';
+  // عدد المباريات المفتوحة للتوقع (لإظهار زر حفظ الكل)
+  const openCount=filtered.filter(m=>canPredict(m)).length;
+  let footer='';
+  if(openCount>0){
+    footer=`<div style="position:sticky;bottom:0;background:linear-gradient(transparent,var(--dark) 35%);padding:1rem 0 .5rem;margin-top:.5rem;z-index:5">
+      <button class="btn btn-green" style="width:100%;font-size:1rem;padding:.85rem" onclick="saveAllPreds()">💾 حفظ كل التوقعات المُدخلة دفعة واحدة</button>
+    </div>`;
+  }
+  return html+'</div>'+footer;
 }
 
 function stageIcon(s){
@@ -1925,8 +1933,38 @@ function savePred(mid){
   if(!preds[u.username])preds[u.username]={};
   preds[u.username][mid]={r1:parseInt(r1),r2:parseInt(r2),savedAt:Date.now()};
   DB.savePredictions(preds);
-  showNotif('✓ تم حفظ توقعك!','⭐');
-  setTimeout(()=>showPage('matches'),1400);
+  // تغذية بصرية على البطاقة نفسها دون إعادة تحميل الصفحة
+  const btn=document.querySelector(`button[onclick="savePred('${mid}')"]`);
+  if(btn){
+    const orig=btn.innerHTML;
+    btn.innerHTML='✓ تم الحفظ';
+    btn.style.background='var(--green)';
+    btn.style.color='#fff';
+    setTimeout(()=>{btn.innerHTML=orig;btn.style.background='';btn.style.color='';},1500);
+  }
+}
+
+// حفظ كل التوقعات المُدخلة دفعة واحدة
+function saveAllPreds(){
+  const u=DB.currentUser();
+  const matches=DB.matches();
+  const preds=DB.predictions();
+  if(!preds[u.username])preds[u.username]={};
+  let saved=0, skipped=0;
+  matches.forEach(m=>{
+    if(!canPredict(m)) return; // المغلقة تُتجاهل
+    const e1=document.getElementById('p1-'+m.id);
+    const e2=document.getElementById('p2-'+m.id);
+    if(!e1||!e2) return;
+    const r1=e1.value, r2=e2.value;
+    if(r1===''||r2==='') return; // الفارغة تُتجاهل
+    preds[u.username][m.id]={r1:parseInt(r1),r2:parseInt(r2),savedAt:Date.now()};
+    saved++;
+  });
+  if(!saved){showInlineMsg('pmsg','لم تُدخل أي توقعات جديدة لحفظها','err');return;}
+  DB.savePredictions(preds);
+  showNotif(`✓ تم حفظ ${saved} ${saved===1?'توقع':'توقعات'} دفعة واحدة!`,'⭐',3000);
+  showInlineMsg('pmsg',`✓ تم حفظ ${saved} توقعات بنجاح`,'ok');
 }
 // ── AUTO FETCH RESULTS (Cloudflare Worker) ────────────────────
 // ضع رابط الـ Worker الخاص بك هنا بعد إنشائه على Cloudflare:
