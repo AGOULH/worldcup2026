@@ -1956,14 +1956,15 @@ const TEAM_MAP={
 };
 function mapTeam(en){
   if(!en) return null;
-  // تطبيع: حروف صغيرة + إزالة المسافات الزائدة والرموز الخفية
+  // تطبيع: حروف صغيرة + تحويل الشرطات لمسافات + إزالة المسافات الزائدة والرموز الخفية
   let k=String(en).toLowerCase()
     .replace(/[\u200b-\u200f\u202a-\u202e]/g,'')
+    .replace(/[-_.]/g,' ')        // الشرطات والنقاط → مسافات
     .replace(/\s+/g,' ')
     .trim();
   if(TEAM_MAP[k]) return TEAM_MAP[k];
-  // محاولة بدون أحرف غير أبجدية
-  const k2=k.replace(/[^a-z ]/g,'').trim();
+  // محاولة بدون أحرف غير أبجدية (مع دمج المسافات الناتجة)
+  const k2=k.replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
   return TEAM_MAP[k2]||null;
 }
 
