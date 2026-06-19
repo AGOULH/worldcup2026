@@ -975,6 +975,9 @@ function buildAdmin(){
     <button class="btn btn-blue btn-sm" style="width:100%" onclick="fetchAutoResults()">🔄 جلب النتائج الآن</button>
     <div id="auto-msg" class="msg" style="margin-top:.625rem"></div>
     <div id="auto-preview"></div>
+    <div style="margin-top:.5rem;padding:.5rem .625rem;background:rgba(0,0,0,.25);border-radius:var(--r2);font-size:.66rem;color:var(--muted);line-height:1.6">
+      ℹ️ Worker: <span style="color:var(--blue);direction:ltr;unicode-bidi:embed">${WORKER_URL.replace(/</g,'&lt;')}</span>
+    </div>
   </div>
 
   <div class="card glass" style="border-color:rgba(0,200,83,.3);margin-bottom:1rem">
@@ -1990,7 +1993,23 @@ const TEAM_MAP={
 'venezuela':'فنزويلا','bolivia':'بوليفيا','united arab emirates':'الإمارات','uae':'الإمارات','oman':'عُمان','bahrain':'البحرين','kuwait':'الكويت',
 'china':'الصين','china pr':'الصين','india':'الهند','thailand':'تايلاند','vietnam':'فيتنام','indonesia':'إندونيسيا',
 'angola':'أنغولا','zambia':'زامبيا','kenya':'كينيا','uganda':'أوغندا','burkina faso':'بوركينا فاسو','gabon':'الغابون',
-'panama':'بنما','el salvador':'السلفادور','guatemala':'غواتيمالا','new caledonia':'كاليدونيا الجديدة','suriname':'سورينام'
+'panama':'بنما','el salvador':'السلفادور','guatemala':'غواتيمالا','new caledonia':'كاليدونيا الجديدة','suriname':'سورينام',
+// مرادفات إضافية يستخدمها TheSportsDB
+'curaçao':'كوراساو','curacao island':'كوراساو',
+'south korea':'كوريا الجنوبية','korea dpr':'كوريا الشمالية',
+'united states':'الولايات المتحدة','us':'الولايات المتحدة',
+'côte d\'ivoire':'كوت ديفوار','cote d ivoire':'كوت ديفوار',
+'bosnia & herzegovina':'البوسنة','bih':'البوسنة',
+'dr. congo':'الكونغو','republic of congo':'الكونغو',
+'cape verde islands':'الرأس الأخضر',
+'ir iran':'إيران','iran (islamic republic of)':'إيران',
+'czech rep.':'التشيك','czech rep':'التشيك',
+'türkiye':'تركيا',
+'new zealand':'نيوزيلندا','nz':'نيوزيلندا',
+'south africa':'جنوب أفريقيا','rsa':'جنوب أفريقيا',
+'scotland (great britain)':'اسكتلندا',
+'england (great britain)':'إنجلترا',
+'great britain':'المملكة المتحدة'
 };
 function mapTeam(en){
   if(!en) return null;
@@ -2008,17 +2027,22 @@ function mapTeam(en){
 
 async function fetchAutoResults(){
   if(WORKER_URL.includes('PUT_YOUR')){
-    showInlineMsg('auto-msg','⚠️ لم يتم ضبط رابط الـ Worker بعد — راجع التعليمات','err');return;
+    showInlineMsg('auto-msg','⚠️ لم يتم ضبط رابط الـ Worker بعد — انشر worker.js على Cloudflare ثم ضع الرابط في WORKER_URL','err');return;
   }
   showInlineMsg('auto-msg','⏳ جاري جلب النتائج...','ok');
   try{
-    const res=await fetch(WORKER_URL);
-    const data=await res.json();
-    if(!data.ok||!data.results){showInlineMsg('auto-msg','تعذر جلب البيانات من المصدر','err');return;}
+    const res=await fetch(WORKER_URL,{cache:'no-store'});
+    if(!res.ok){showInlineMsg('auto-msg',`خطأ HTTP من الـ Worker: ${res.status} ${res.statusText}`,'err');return;}
+    let data;
+    try{data=await res.json();}catch(je){showInlineMsg('auto-msg','الـ Worker لم يُرجع JSON صحيحاً — تحقق من نشره بشكل صحيح','err');return;}
+    if(!data.ok){showInlineMsg('auto-msg','الـ Worker أفاد بخطأ: '+(data.error||'غير محدد'),'err');return;}
+    if(!data.results||!Array.isArray(data.results)){showInlineMsg('auto-msg','تعذر جلب البيانات من المصدر — قد يكون TheSportsDB لا يحتوي بيانات الكأس بعد','err');return;}
     const finished=data.results.filter(r=>r.finished&&r.homeScore!==null&&r.awayScore!==null);
     if(!finished.length){
-      const srcNote=data.sources?`\n(المصادر: SportsDB=${data.sources.sportsdb?'✓':'✗'}, openfootball=${data.sources.openfootball?'✓':'✗'})`:'';
-      showInlineMsg('auto-msg','لا توجد نتائج منتهية في المصدر حتى الآن'+srcNote,'err');return;
+      const srcNote=data.sources?` | SportsDB=${data.sources.sportsdb?'✓':'✗'}, openfootball=${data.sources.openfootball?'✓':'✗'}`+
+        (data.counts?` | عدد النتائج: ${data.counts.sportsdb||0}+${data.counts.openfootball||0}`:''):'';
+      const hint=(!data.sources||(!data.sources.sportsdb&&!data.sources.openfootball))?'\nتلميح: قد لا تكون بيانات كأس العالم 2026 متاحة في TheSportsDB حتى الآن — جرّب الإدخال اليدوي أو رفع ملف Excel.':'';
+      showInlineMsg('auto-msg','لا توجد نتائج منتهية في المصدر حتى الآن'+srcNote+hint,'err');return;
     }
 
     // مطابقة مرنة: تقبل أي ترتيب للفريقين + تجمع غير المطابق للتشخيص
@@ -2048,8 +2072,8 @@ async function fetchAutoResults(){
     if(!proposals.length){
       let msg='✓ تم الجلب — لا توجد نتائج جديدة تنتظر الاعتماد';
       if(unmatched.length){
-        msg+=`\n\n⚠️ ${unmatched.length} مباراة لم تُطابق أسماؤها:\n`+unmatched.slice(0,6).join('\n');
-        msg+='\n\n(قد تكون النتائج محسومة مسبقاً، أو تحتاج إضافة أسماء الفرق)';
+        msg+=`\n\n⚠️ ${unmatched.length} فريق لم يُطابق اسمه في قاموس الفرق:\n`+unmatched.slice(0,8).join('\n');
+        msg+='\n\nأضف أسماء الفرق في TEAM_MAP داخل index.html إن لزم';
       }
       showInlineMsg('auto-msg',msg,unmatched.length?'err':'ok');
       document.getElementById('auto-preview').innerHTML='';
