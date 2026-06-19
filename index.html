@@ -1471,7 +1471,7 @@ function buildReportCanvas(mode){
   // حساب الارتفاع
   const headerH=200;
   let bodyH=0;
-  dates.forEach(d=>{ bodyH+=54; bodyH+=byDate[d].length*92; bodyH+=16; });
+  dates.forEach(d=>{ bodyH+=54; bodyH+=byDate[d].length*112; bodyH+=16; });
   const lbTitleH=64;
   const lbH=Math.min(lb.length,12)*60+20;
   const footerH=70;
@@ -1519,25 +1519,33 @@ function buildReportCanvas(mode){
     // المباريات
     byDate[d].forEach(m=>{
       x.fillStyle='rgba(16,29,48,.85)';
-      roundRect(x,PAD,y+6,W-2*PAD,80,14);x.fill();
+      roundRect(x,PAD,y+6,W-2*PAD,100,14);x.fill();
       x.strokeStyle='rgba(28,45,69,.9)';x.lineWidth=1.5;
-      roundRect(x,PAD,y+6,W-2*PAD,80,14);x.stroke();
+      roundRect(x,PAD,y+6,W-2*PAD,100,14);x.stroke();
       // أسماء + نتيجة
       x.textAlign='center';
       x.fillStyle='#d8e8f8';x.font='bold 26px Tajawal, Arial';
       x.fillText(`${teamName(m.t1)}  ${m.r1} - ${m.r2}  ${teamName(m.t2)}`,W/2,y+38);
-      // كم أصاب النتيجة
+      // من أصاب النتيجة
       const preds=DB.predictions(), users=DB.users().filter(u=>!u.isAdmin);
       let exact=0,winner=0;
+      const exactNames=[];
       users.forEach(u=>{
         const p=preds[u.username]?.[m.id];
         if(!p) return;
         const pts=calcPts(p,m);
-        if(pts===5)exact++; else if(pts===2)winner++;
+        if(pts===5){exact++;exactNames.push(u.name);}
+        else if(pts===2)winner++;
       });
       x.fillStyle='#7a94b4';x.font='17px Tajawal, Arial';
       x.fillText(`⭐ ${exact} أصابوا النتيجة  |  ✅ ${winner} أصابوا الفائز`,W/2,y+66);
-      y+=92;
+      // أسماء المصيبين بالضبط
+      if(exactNames.length){
+        x.fillStyle='#C9A84C';x.font='bold 15px Tajawal, Arial';
+        const namesTxt='⭐ '+exactNames.join('  •  ');
+        x.fillText(namesTxt,W/2,y+90);
+      }
+      y+=112;
     });
     y+=16;
   });
