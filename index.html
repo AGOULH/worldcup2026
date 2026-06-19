@@ -976,7 +976,7 @@ function buildAdmin(){
     <div id="auto-msg" class="msg" style="margin-top:.625rem"></div>
     <div id="auto-preview"></div>
     <div style="margin-top:.5rem;padding:.5rem .625rem;background:rgba(0,0,0,.25);border-radius:var(--r2);font-size:.66rem;color:var(--muted);line-height:1.6">
-      ℹ️ Worker: <span style="color:var(--blue);direction:ltr;unicode-bidi:embed">${WORKER_URL.replace(/</g,'&lt;')}</span>
+      ℹ️ يجلب مباشرة من TheSportsDB وopenfootball بدون خادم وسيط
     </div>
   </div>
 
@@ -1969,9 +1969,7 @@ function saveAllPreds(){
   showNotif(`✓ تم حفظ ${saved} ${saved===1?'توقع':'توقعات'} دفعة واحدة!`,'⭐',3000);
   showInlineMsg('pmsg',`✓ تم حفظ ${saved} توقعات بنجاح`,'ok');
 }
-// ── AUTO FETCH RESULTS (Cloudflare Worker) ────────────────────
-// ضع رابط الـ Worker الخاص بك هنا بعد إنشائه على Cloudflare:
-const WORKER_URL='https://worldcup-results.agoul-hasan.workers.dev/';
+// ── AUTO FETCH RESULTS (مباشر من المتصفح) ────────────────────
 
 // خريطة أسماء الفرق: الإنجليزية (من TheSportsDB) → العربية (في الموقع)
 const TEAM_MAP={
@@ -2025,93 +2023,178 @@ function mapTeam(en){
   return TEAM_MAP[k2]||null;
 }
 
-async function fetchAutoResults(){
-  if(WORKER_URL.includes('PUT_YOUR')){
-    showInlineMsg('auto-msg','⚠️ لم يتم ضبط رابط الـ Worker بعد — انشر worker.js على Cloudflare ثم ضع الرابط في WORKER_URL','err');return;
-  }
-  showInlineMsg('auto-msg','⏳ جاري جلب النتائج...','ok');
-  try{
-    const res=await fetch(WORKER_URL,{cache:'no-store'});
-    if(!res.ok){showInlineMsg('auto-msg',`خطأ HTTP من الـ Worker: ${res.status} ${res.statusText}`,'err');return;}
-    let data;
-    try{data=await res.json();}catch(je){showInlineMsg('auto-msg','الـ Worker لم يُرجع JSON صحيحاً — تحقق من نشره بشكل صحيح','err');return;}
-    if(!data.ok){showInlineMsg('auto-msg','الـ Worker أفاد بخطأ: '+(data.error||'غير محدد'),'err');return;}
-    if(!data.results||!Array.isArray(data.results)){showInlineMsg('auto-msg','تعذر جلب البيانات من المصدر — قد يكون TheSportsDB لا يحتوي بيانات الكأس بعد','err');return;}
-    const finished=data.results.filter(r=>r.finished&&r.homeScore!==null&&r.awayScore!==null);
-    if(!finished.length){
-      const srcNote=data.sources?` | SportsDB=${data.sources.sportsdb?'✓':'✗'}, openfootball=${data.sources.openfootball?'✓':'✗'}`+
-        (data.counts?` | عدد النتائج: ${data.counts.sportsdb||0}+${data.counts.openfootball||0}`:''):'';
-      const hint=(!data.sources||(!data.sources.sportsdb&&!data.sources.openfootball))?'\nتلميح: قد لا تكون بيانات كأس العالم 2026 متاحة في TheSportsDB حتى الآن — جرّب الإدخال اليدوي أو رفع ملف Excel.':'';
-      showInlineMsg('auto-msg','لا توجد نتائج منتهية في المصدر حتى الآن'+srcNote+hint,'err');return;
+// جلب من TheSportsDB (بدون API key — يدعم CORS)
+async function _fetchSportsDB(){
+  const leagueIds=['4429','140280','140325'];
+  const seasons=['2025-2026','2026','2026-2027'];
+  for(const id of leagueIds){
+    for(const s of seasons){
+      try{
+        const r=await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=${id}&s=${s}`,{cache:'no-store'});
+        if(!r.ok) continue;
+        const d=await r.json();
+        const evs=d.events||[];
+        if(!evs.length) continue;
+        const out=evs.filter(e=>{
+          const s1=e.intHomeScore, s2=e.intAwayScore;
+          if(s1===null||s1===''||s1===undefined) return false;
+          const st=String(e.strStatus||'').toLowerCase();
+          return st.includes('finish')||st==='ft'||st==='aet'||st==='pen';
+        }).map(e=>({
+          home:e.strHomeTeam, away:e.strAwayTeam,
+          homeScore:parseInt(e.intHomeScore), awayScore:parseInt(e.intAwayScore),
+          finished:true
+        }));
+        if(out.length) return out;
+      }catch(_){continue;}
     }
+  }
+  // محاولة بحث بالاسم كآخر خيار
+  try{
+    const r=await fetch('https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e=FIFA+World+Cup+2026',{cache:'no-store'});
+    if(r.ok){
+      const d=await r.json();
+      const evs=d.event||d.events||[];
+      return evs.filter(e=>{
+        const s1=e.intHomeScore;
+        if(s1===null||s1===''||s1===undefined) return false;
+        const st=String(e.strStatus||'').toLowerCase();
+        return st.includes('finish')||st==='ft';
+      }).map(e=>({
+        home:e.strHomeTeam, away:e.strAwayTeam,
+        homeScore:parseInt(e.intHomeScore), awayScore:parseInt(e.intAwayScore),
+        finished:true
+      }));
+    }
+  }catch(_){}
+  return [];
+}
+// جلب من openfootball على GitHub (يدعم CORS)
+async function _fetchOpenfootball(){
+  const urls=[
+    'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json',
+    'https://raw.githubusercontent.com/openfootball/world-cup/master/2026/worldcup.json'
+  ];
+  for(const url of urls){
+    try{
+      const r=await fetch(url,{cache:'no-store'});
+      if(!r.ok) continue;
+      const data=await r.json();
+      const results=[];
+      const sections=data.rounds||data.groups||[];
+      for(const sec of sections){
+        const ms=sec.matches||sec.games||[];
+        for(const m of ms){
+          const sc=m.score||m.result;
+          if(!sc) continue;
+          const ft=sc.ft||sc;
+          if(!Array.isArray(ft)||ft.length<2||ft[0]===null) continue;
+          const t1=m.team1||m.home_team, t2=m.team2||m.away_team;
+          if(!t1||!t2) continue;
+          const n1=typeof t1==='object'?(t1.name||t1.code):t1;
+          const n2=typeof t2==='object'?(t2.name||t2.code):t2;
+          results.push({home:n1,away:n2,homeScore:parseInt(ft[0]),awayScore:parseInt(ft[1]),finished:true});
+        }
+      }
+      if(results.length) return results;
+    }catch(_){continue;}
+  }
+  return[];
+}
 
-    // مطابقة مرنة: تقبل أي ترتيب للفريقين + تجمع غير المطابق للتشخيص
-    const matches=DB.matches();
-    const proposals=[];
-    const unmatched=[];
-    finished.forEach(r=>{
-      const homeAr=mapTeam(r.home), awayAr=mapTeam(r.away);
-      if(!homeAr||!awayAr){
-        unmatched.push(`${r.home} / ${r.away}`);
-        return;
-      }
-      // جرّب الترتيب الطبيعي (r.home=t1) ثم المعكوس
-      let m=matches.find(x=>!x.official && teamName(x.t1)===homeAr && teamName(x.t2)===awayAr);
-      let s1=r.homeScore, s2=r.awayScore;
-      if(!m){
-        m=matches.find(x=>!x.official && teamName(x.t1)===awayAr && teamName(x.t2)===homeAr);
-        if(m){ s1=r.awayScore; s2=r.homeScore; } // اعكس النتيجة لتطابق ترتيب الموقع
-      }
-      if(m) proposals.push({
-        m, score1:s1, score2:s2,
-        src:`${r.home} ${r.homeScore}-${r.awayScore} ${r.away}`,
-        verified:!!r.verified, hasSecond:!!r.hasSecondSource, secondScore:r.secondScore||null
-      });
-    });
+async function fetchAutoResults(){
+  showInlineMsg('auto-msg','⏳ جاري جلب النتائج من TheSportsDB وopenfootball...','ok');
+  let s1=[],s2=[],sdbOk=false,ofbOk=false;
+  try{s1=await _fetchSportsDB();sdbOk=s1.length>0;}catch(_){}
+  try{s2=await _fetchOpenfootball();ofbOk=s2.length>0;}catch(_){}
 
-    if(!proposals.length){
-      let msg='✓ تم الجلب — لا توجد نتائج جديدة تنتظر الاعتماد';
-      if(unmatched.length){
-        msg+=`\n\n⚠️ ${unmatched.length} فريق لم يُطابق اسمه في قاموس الفرق:\n`+unmatched.slice(0,8).join('\n');
-        msg+='\n\nأضف أسماء الفرق في TEAM_MAP داخل index.html إن لزم';
-      }
-      showInlineMsg('auto-msg',msg,unmatched.length?'err':'ok');
-      document.getElementById('auto-preview').innerHTML='';
+  if(!sdbOk&&!ofbOk){
+    showInlineMsg('auto-msg','⚠️ تعذر الاتصال بالمصدرين (SportsDB وopenfootball) — تحقق من الاتصال بالإنترنت أو جرّب لاحقاً','err');
+    return;
+  }
+
+  // دمج: المصدر الأساسي s1، التحقق من s2
+  const byKey=r=>[r.home.toLowerCase().trim(),r.away.toLowerCase().trim()].sort().join('|');
+  const map=new Map();
+  s1.forEach(r=>{map.set(byKey(r),{...r,hasSecondSource:false,verified:false,secondScore:null});});
+  s2.forEach(r=>{
+    const k=byKey(r);
+    if(map.has(k)){
+      const x=map.get(k);
+      x.hasSecondSource=true;
+      const scMatch=(x.homeScore===r.homeScore&&x.awayScore===r.awayScore)||
+                    (x.homeScore===r.awayScore&&x.awayScore===r.homeScore);
+      if(scMatch) x.verified=true; else x.secondScore=`${r.homeScore}-${r.awayScore}`;
+    } else {
+      map.set(k,{...r,hasSecondSource:false,verified:false,secondScore:null});
+    }
+  });
+  const finished=[...map.values()];
+
+  // مطابقة مرنة: تقبل أي ترتيب للفريقين + تجمع غير المطابق للتشخيص
+  const matches=DB.matches();
+  const proposals=[];
+  const unmatched=[];
+  finished.forEach(r=>{
+    const homeAr=mapTeam(r.home), awayAr=mapTeam(r.away);
+    if(!homeAr||!awayAr){
+      unmatched.push(`${r.home} / ${r.away}`);
       return;
     }
-
-    // ترتيب: المؤكدة أولاً
-    proposals.sort((a,b)=>(b.verified?1:0)-(a.verified?1:0));
-    window._autoProposals=proposals;
-    const verifiedCount=proposals.filter(p=>p.verified).length;
-    const sourcesNote=data.sources?(data.sources.openfootball?'':' (المصدر الثاني للتحقق غير متاح حالياً)'):'';
-    let html=`<div style="margin-top:.75rem">
-      <div style="font-size:.72rem;color:var(--muted2);margin-bottom:.5rem;line-height:1.6">
-        ✅ <strong style="color:var(--green)">مؤكدة</strong> = المصدران متفقان (اعتمدها بثقة)${sourcesNote}<br>
-        ⚠️ <strong style="color:var(--orange)">غير مؤكدة</strong> = مصدر واحد أو اختلاف — راجعها يدوياً قبل الاعتماد
-      </div>`;
-    proposals.forEach((p,i)=>{
-      const conflict=p.hasSecond&&!p.verified&&p.secondScore;
-      html+=`<div class="card2" style="display:flex;align-items:center;gap:.5rem;padding:.6rem .75rem;margin-bottom:.4rem;border-color:${p.verified?'rgba(0,200,83,.35)':'rgba(255,152,0,.35)'}">
-        <div style="flex:1">
-          <div style="font-size:.78rem;font-weight:600">
-            ${p.verified?'✅':'⚠️'} ${teamFlag(p.m.t1)} ${teamName(p.m.t1)} <strong style="color:var(--gold2)">${p.score1}-${p.score2}</strong> ${teamName(p.m.t2)} ${teamFlag(p.m.t2)}
-          </div>
-          <div style="font-size:.62rem;color:var(--muted)">المصدر 1: ${p.src}</div>
-          ${conflict?`<div style="font-size:.62rem;color:var(--red)">⚠️ المصدر 2 مختلف: ${p.secondScore} — تحقّق يدوياً!</div>`:p.verified?`<div style="font-size:.62rem;color:var(--green)">✓ المصدر 2 مطابق</div>`:`<div style="font-size:.62rem;color:var(--orange)">مصدر واحد فقط</div>`}
-        </div>
-        <button class="btn ${p.verified?'btn-green':'btn-outline'} btn-sm" onclick="approveAutoResult(${i})">✔ اعتماد</button>
-      </div>`;
+    // جرّب الترتيب الطبيعي (r.home=t1) ثم المعكوس
+    let m=matches.find(x=>!x.official && teamName(x.t1)===homeAr && teamName(x.t2)===awayAr);
+    let sc1=r.homeScore, sc2=r.awayScore;
+    if(!m){
+      m=matches.find(x=>!x.official && teamName(x.t1)===awayAr && teamName(x.t2)===homeAr);
+      if(m){ sc1=r.awayScore; sc2=r.homeScore; }
+    }
+    if(m) proposals.push({
+      m, score1:sc1, score2:sc2,
+      src:`${r.home} ${r.homeScore}-${r.awayScore} ${r.away}`,
+      verified:!!r.verified, hasSecond:!!r.hasSecondSource, secondScore:r.secondScore||null
     });
-    html+=`<div class="two-col" style="margin-top:.5rem">
-      <button class="btn btn-green btn-sm" onclick="approveVerifiedOnly()">✔ اعتماد المؤكدة فقط (${verifiedCount})</button>
-      <button class="btn btn-outline btn-sm" onclick="approveAllAutoResults()">اعتماد الكل (${proposals.length})</button>
-    </div></div>`;
-    document.getElementById('auto-preview').innerHTML=html;
-    showInlineMsg('auto-msg',`✓ وُجدت ${proposals.length} نتيجة (${verifiedCount} مؤكدة) — راجعها`,'ok');
-  }catch(e){
-    showInlineMsg('auto-msg','خطأ في الاتصال: '+e.message,'err');
+  });
+
+  if(!proposals.length){
+    let msg=`✓ تم الجلب (SportsDB=${sdbOk?'✓':'✗'}, openfootball=${ofbOk?'✓':'✗'}) — لا توجد نتائج جديدة تنتظر الاعتماد`;
+    if(unmatched.length){
+      msg+=`\n\n⚠️ ${unmatched.length} فريق لم يُطابق اسمه في قاموس الفرق:\n`+unmatched.slice(0,8).join('\n');
+      msg+='\n\nأضف أسماء الفرق في TEAM_MAP داخل index.html إن لزم';
+    }
+    showInlineMsg('auto-msg',msg,unmatched.length?'err':'ok');
+    document.getElementById('auto-preview').innerHTML='';
+    return;
   }
+
+  // ترتيب: المؤكدة أولاً
+  proposals.sort((a,b)=>(b.verified?1:0)-(a.verified?1:0));
+  window._autoProposals=proposals;
+  const verifiedCount=proposals.filter(p=>p.verified).length;
+  const sourcesNote=ofbOk?'':' (المصدر الثاني للتحقق غير متاح حالياً)';
+  let html=`<div style="margin-top:.75rem">
+    <div style="font-size:.72rem;color:var(--muted2);margin-bottom:.5rem;line-height:1.6">
+      ✅ <strong style="color:var(--green)">مؤكدة</strong> = المصدران متفقان (اعتمدها بثقة)${sourcesNote}<br>
+      ⚠️ <strong style="color:var(--orange)">غير مؤكدة</strong> = مصدر واحد أو اختلاف — راجعها يدوياً قبل الاعتماد
+    </div>`;
+  proposals.forEach((p,i)=>{
+    const conflict=p.hasSecond&&!p.verified&&p.secondScore;
+    html+=`<div class="card2" style="display:flex;align-items:center;gap:.5rem;padding:.6rem .75rem;margin-bottom:.4rem;border-color:${p.verified?'rgba(0,200,83,.35)':'rgba(255,152,0,.35)'}">
+      <div style="flex:1">
+        <div style="font-size:.78rem;font-weight:600">
+          ${p.verified?'✅':'⚠️'} ${teamFlag(p.m.t1)} ${teamName(p.m.t1)} <strong style="color:var(--gold2)">${p.score1}-${p.score2}</strong> ${teamName(p.m.t2)} ${teamFlag(p.m.t2)}
+        </div>
+        <div style="font-size:.62rem;color:var(--muted)">المصدر 1: ${p.src}</div>
+        ${conflict?`<div style="font-size:.62rem;color:var(--red)">⚠️ المصدر 2 مختلف: ${p.secondScore} — تحقّق يدوياً!</div>`:p.verified?`<div style="font-size:.62rem;color:var(--green)">✓ المصدر 2 مطابق</div>`:`<div style="font-size:.62rem;color:var(--orange)">مصدر واحد فقط</div>`}
+      </div>
+      <button class="btn ${p.verified?'btn-green':'btn-outline'} btn-sm" onclick="approveAutoResult(${i})">✔ اعتماد</button>
+    </div>`;
+  });
+  html+=`<div class="two-col" style="margin-top:.5rem">
+    <button class="btn btn-green btn-sm" onclick="approveVerifiedOnly()">✔ اعتماد المؤكدة فقط (${verifiedCount})</button>
+    <button class="btn btn-outline btn-sm" onclick="approveAllAutoResults()">اعتماد الكل (${proposals.length})</button>
+  </div></div>`;
+  document.getElementById('auto-preview').innerHTML=html;
+  showInlineMsg('auto-msg',`✓ وُجدت ${proposals.length} نتيجة (${verifiedCount} مؤكدة) — SportsDB=${sdbOk?'✓':'✗'}, openfootball=${ofbOk?'✓':'✗'}`,'ok');
 }
 function approveAutoResult(i){
   const p=window._autoProposals?.[i];
