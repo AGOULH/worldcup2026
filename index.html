@@ -2023,50 +2023,75 @@ function mapTeam(en){
   return TEAM_MAP[k2]||null;
 }
 
-// جلب من TheSportsDB (بدون API key — يدعم CORS)
+// سجل تشخيصي يُملأ أثناء الجلب لعرضه للمستخدم
+window._fetchDiag=[];
+function _diag(msg){window._fetchDiag.push(msg);}
+function _recentDays(n){
+  const arr=[],now=new Date();
+  for(let i=0;i<n;i++){const d=new Date(now);d.setDate(d.getDate()-i);arr.push(d.toISOString().slice(0,10));}
+  return arr;
+}
+function _isFinished(e){
+  const st=String(e.strStatus||'').toLowerCase();
+  return st.includes('finish')||st==='ft'||st==='aet'||st==='pen'||st==='after extra time'||st==='after penalties';
+}
+function _isWorldCup(e){
+  const lg=String(e.strLeague||'').toLowerCase();
+  return lg.includes('world cup')||lg.includes('fifa');
+}
+function _evToResult(e){
+  return{home:e.strHomeTeam,away:e.strAwayTeam,
+    homeScore:parseInt(e.intHomeScore),awayScore:parseInt(e.intAwayScore),
+    finished:true,date:e.dateEvent,league:e.strLeague};
+}
+function _hasScore(e){
+  const a=e.intHomeScore,b=e.intAwayScore;
+  return a!==null&&a!==''&&a!==undefined&&b!==null&&b!==''&&b!==undefined;
+}
+// جلب من TheSportsDB — يدعم CORS، مفتاح الاختبار المجاني
 async function _fetchSportsDB(){
-  const leagueIds=['4429','140280','140325'];
-  const seasons=['2025-2026','2026','2026-2027'];
-  for(const id of leagueIds){
-    for(const s of seasons){
+  const KEYS=['3','123'];
+  // ① الأسلوب الأساسي: حسب التاريخ (لا يحتاج معرّف البطولة) — يلتقط كل مباريات الكأس المنتهية
+  for(const KEY of KEYS){
+    const seen=new Set(),out=[];
+    let anyResp=false;
+    for(const d of _recentDays(14)){
       try{
-        const r=await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=${id}&s=${s}`,{cache:'no-store'});
-        if(!r.ok) continue;
-        const d=await r.json();
-        const evs=d.events||[];
-        if(!evs.length) continue;
-        const out=evs.filter(e=>{
-          const s1=e.intHomeScore, s2=e.intAwayScore;
-          if(s1===null||s1===''||s1===undefined) return false;
-          const st=String(e.strStatus||'').toLowerCase();
-          return st.includes('finish')||st==='ft'||st==='aet'||st==='pen';
-        }).map(e=>({
-          home:e.strHomeTeam, away:e.strAwayTeam,
-          homeScore:parseInt(e.intHomeScore), awayScore:parseInt(e.intAwayScore),
-          finished:true
-        }));
-        if(out.length) return out;
-      }catch(_){continue;}
+        const r=await fetch(`https://www.thesportsdb.com/api/v1/json/${KEY}/eventsday.php?d=${d}&s=Soccer`,{cache:'no-store'});
+        if(!r.ok){_diag(`SportsDB(${KEY}) ${d}: HTTP ${r.status}`);continue;}
+        anyResp=true;
+        const j=await r.json();
+        const evs=j.events||[];
+        evs.forEach(e=>{
+          if(!_isWorldCup(e)||!_isFinished(e)||!_hasScore(e))return;
+          const k=e.idEvent||(e.strHomeTeam+e.strAwayTeam+e.dateEvent);
+          if(seen.has(k))return; seen.add(k);
+          out.push(_evToResult(e));
+        });
+      }catch(err){_diag(`SportsDB(${KEY}) ${d}: ${err.message}`);}
+    }
+    if(out.length){_diag(`SportsDB(${KEY}) حسب التاريخ: ${out.length} نتيجة`);return out;}
+    if(anyResp)_diag(`SportsDB(${KEY}) حسب التاريخ: لا مباريات كأس منتهية في آخر 14 يوماً`);
+  }
+  // ② احتياطي: حسب الموسم بمعرّفات محتملة للبطولة
+  const leagueIds=['4429','140280','140325','5587'];
+  const seasons=['2026','2025-2026','2026-2027'];
+  for(const KEY of KEYS){
+    for(const id of leagueIds){
+      for(const s of seasons){
+        try{
+          const r=await fetch(`https://www.thesportsdb.com/api/v1/json/${KEY}/eventsseason.php?id=${id}&s=${s}`,{cache:'no-store'});
+          if(!r.ok)continue;
+          const d=await r.json();
+          const evs=d.events||[];
+          if(!evs.length)continue;
+          const out=evs.filter(e=>_isFinished(e)&&_hasScore(e)).map(_evToResult);
+          if(out.length){_diag(`SportsDB(${KEY}) موسم id=${id} s=${s}: ${out.length} نتيجة`);return out;}
+        }catch(_){}
+      }
     }
   }
-  // محاولة بحث بالاسم كآخر خيار
-  try{
-    const r=await fetch('https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e=FIFA+World+Cup+2026',{cache:'no-store'});
-    if(r.ok){
-      const d=await r.json();
-      const evs=d.event||d.events||[];
-      return evs.filter(e=>{
-        const s1=e.intHomeScore;
-        if(s1===null||s1===''||s1===undefined) return false;
-        const st=String(e.strStatus||'').toLowerCase();
-        return st.includes('finish')||st==='ft';
-      }).map(e=>({
-        home:e.strHomeTeam, away:e.strAwayTeam,
-        homeScore:parseInt(e.intHomeScore), awayScore:parseInt(e.intAwayScore),
-        finished:true
-      }));
-    }
-  }catch(_){}
+  _diag('SportsDB: لم تُرجِع أي نتائج من أي مسار');
   return [];
 }
 // جلب من openfootball على GitHub (يدعم CORS)
@@ -2096,20 +2121,31 @@ async function _fetchOpenfootball(){
           results.push({home:n1,away:n2,homeScore:parseInt(ft[0]),awayScore:parseInt(ft[1]),finished:true});
         }
       }
-      if(results.length) return results;
-    }catch(_){continue;}
+      if(results.length){_diag(`openfootball: ${results.length} نتيجة`);return results;}
+    }catch(err){_diag(`openfootball: ${err.message}`);continue;}
   }
+  _diag('openfootball: لا بيانات 2026 متاحة بعد');
   return[];
 }
 
+function _diagHtml(){
+  if(!window._fetchDiag||!window._fetchDiag.length)return'';
+  return `<details style="margin-top:.5rem"><summary style="font-size:.66rem;color:var(--muted);cursor:pointer">🔍 تفاصيل تقنية للتشخيص</summary>
+    <div style="font-size:.6rem;color:var(--muted);direction:ltr;text-align:left;background:rgba(0,0,0,.3);padding:.5rem;border-radius:6px;margin-top:.3rem;line-height:1.6">
+    ${window._fetchDiag.map(x=>'• '+String(x).replace(/</g,'&lt;')).join('<br>')}</div></details>`;
+}
+
 async function fetchAutoResults(){
+  window._fetchDiag=[];
   showInlineMsg('auto-msg','⏳ جاري جلب النتائج من TheSportsDB وopenfootball...','ok');
+  const prev=document.getElementById('auto-preview'); if(prev) prev.innerHTML='';
   let s1=[],s2=[],sdbOk=false,ofbOk=false;
-  try{s1=await _fetchSportsDB();sdbOk=s1.length>0;}catch(_){}
-  try{s2=await _fetchOpenfootball();ofbOk=s2.length>0;}catch(_){}
+  try{s1=await _fetchSportsDB();sdbOk=s1.length>0;}catch(e){_diag('SportsDB خطأ: '+e.message);}
+  try{s2=await _fetchOpenfootball();ofbOk=s2.length>0;}catch(e){_diag('openfootball خطأ: '+e.message);}
 
   if(!sdbOk&&!ofbOk){
-    showInlineMsg('auto-msg','⚠️ تعذر الاتصال بالمصدرين (SportsDB وopenfootball) — تحقق من الاتصال بالإنترنت أو جرّب لاحقاً','err');
+    showInlineMsg('auto-msg','⚠️ لم تُرجِع المصادر أي نتائج كأس منتهية. إن كانت هناك مباريات انتهت فعلاً فالأرجح أن مصدر البيانات لم يُحدّثها بعد — استخدم رفع ملف Excel للإدخال المضمون.','err');
+    const ap=document.getElementById('auto-preview'); if(ap) ap.innerHTML=_diagHtml();
     return;
   }
 
@@ -2162,7 +2198,7 @@ async function fetchAutoResults(){
       msg+='\n\nأضف أسماء الفرق في TEAM_MAP داخل index.html إن لزم';
     }
     showInlineMsg('auto-msg',msg,unmatched.length?'err':'ok');
-    document.getElementById('auto-preview').innerHTML='';
+    document.getElementById('auto-preview').innerHTML=_diagHtml();
     return;
   }
 
