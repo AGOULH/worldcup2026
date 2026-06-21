@@ -147,6 +147,22 @@ header{
 .end-share{
   display:flex;gap:.5rem;flex-direction:column;margin-bottom:1rem;
 }
+/* End stats */
+.es-grid{display:flex;justify-content:space-between;gap:.4rem;margin-bottom:1.1rem}
+.es-item{flex:1;display:flex;flex-direction:column;align-items:center}
+.es-num{font-size:1.35rem;font-weight:900;color:var(--text);line-height:1.1}
+.es-lbl{font-size:.62rem;color:var(--muted);margin-top:.15rem;text-align:center}
+.dist-title{font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:.5rem;text-align:right}
+.dist-wrap{display:flex;flex-direction:column;gap:.28rem;margin-bottom:1.1rem}
+.dist-row{display:flex;align-items:center;gap:.45rem;direction:rtl}
+.dist-label{font-size:.78rem;font-weight:700;color:var(--muted);width:14px;text-align:center;flex-shrink:0}
+.dist-bar{
+  background:#30363d;color:#fff;font-size:.72rem;font-weight:700;
+  padding:.12rem .45rem;border-radius:4px;min-width:24px;
+  display:flex;align-items:center;justify-content:flex-end;
+  transition:width .5s ease;
+}
+.dist-bar.dist-hot{background:var(--green-b)}
 .btn-share{
   background:#0d419d;color:#fff;border:none;border-radius:10px;
   padding:.65rem;font-family:'Tajawal',sans-serif;font-weight:700;font-size:.9rem;
@@ -206,6 +222,16 @@ header{
     <span class="end-emoji" id="end-emoji"></span>
     <div class="end-title" id="end-title"></div>
     <div class="end-msg" id="end-msg"></div>
+
+    <div class="es-grid">
+      <div class="es-item"><span class="es-num" id="es-played">0</span><span class="es-lbl">ألعاب</span></div>
+      <div class="es-item"><span class="es-num" id="es-pct">0%</span><span class="es-lbl">فوز</span></div>
+      <div class="es-item"><span class="es-num" id="es-streak">0</span><span class="es-lbl">تتالي</span></div>
+      <div class="es-item"><span class="es-num" id="es-best">0</span><span class="es-lbl">أفضل تتالي</span></div>
+    </div>
+    <div class="dist-title">توزيع المحاولات</div>
+    <div class="dist-wrap" id="dist-wrap"></div>
+
     <div class="end-share">
       <button class="btn-share" id="btn-share" onclick="shareResult()">📋 نسخ النتيجة</button>
     </div>
@@ -255,6 +281,7 @@ header{
     <div style="border-top:1px solid var(--border);padding-top:1rem;text-align:right">
       <div class="rule-row"><span class="rule-icon">📝</span>اكتب كلمة من ٥ حروف واضغط <b>↵</b></div>
       <div class="rule-row"><span class="rule-icon">🎯</span>لديك ٦ محاولات للوصول إلى الكلمة الصحيحة</div>
+      <div class="rule-row"><span class="rule-icon">✍️</span>الهمزات (أ إ آ) تُحسب مثل الألف (ا)</div>
       <div class="rule-row"><span class="rule-icon">💡</span>كلمة جديدة في كل لعبة</div>
     </div>
 
@@ -265,16 +292,25 @@ header{
 <script>
 // ── WORD LIST (5 Arabic characters each) ──
 const WORDS = [
-  'مدرسة','سيارة','حديقة','جامعة','طالبة',
-  'كتابة','نافذة','خريطة','أحلام','فراشة',
-  'أشجار','مكتبة','أسماك','أقلام','أبواب',
-  'رياضة','ثقافة','عبارة','إجابة','حضارة',
-  'طبيعة','صناعة','عدالة','كرامة','سلامة',
-  'شجاعة','حكومة','قيادة','بناية','ذاكرة',
-  'نظافة','وطنية','حلاوة','صداقة','سعادة',
-  'بطاقة','إجازة','دراسة','سياسة','تجارة',
-  'وزارة','حقيبة','رسالة','ألوان','أحجار',
-  'أسرار','أفكار','أخبار','قمصان','طوابع'
+  // مفاهيم وأماكن
+  'مدرسة','سيارة','حديقة','جامعة','طالبة','كتابة','نافذة','خريطة','أحلام','فراشة',
+  'أشجار','مكتبة','أسماك','أقلام','أبواب','رياضة','ثقافة','عبارة','إجابة','حضارة',
+  'طبيعة','صناعة','عدالة','كرامة','سلامة','شجاعة','حكومة','قيادة','بناية','ذاكرة',
+  'نظافة','وطنية','حلاوة','صداقة','سعادة','بطاقة','إجازة','دراسة','سياسة','تجارة',
+  'وزارة','حقيبة','رسالة','ألوان','أحجار','أسرار','أفكار','أخبار','قمصان','طوابع',
+  // نقل ومركبات
+  'سفينة','طائرة','قطارة','دراجة','حافلة','شاحنة','مركبة','قاطرة','عربات','زوارق',
+  // طبيعة وفلك
+  'جزيرة','صحراء','غابات','بحيرة','نجومة','كواكب','قمرية','شمسية','غيومة','أمطار',
+  'ثلوجة','رياحة','عواصف','حرارة','برودة','رطوبة','جبالة','وديان','سهولة','هضبات',
+  // طعام
+  'تفاحة','موزات','رمانة','مانجو','كرزات','خوخات','عنبية','فطائر','شطيرة','عصائر',
+  'معجون','مخبوز','جزرات','بطاطس','طماطم','خيارة','فلفلة','بصلات','ثومات','ليمون',
+  'حليبة','زبادي','عسلية','تمرات','لوزات','فستقة','سمسمة','قهوات','شايات','سكرية',
+  // مهن
+  'معلمة','طبيبة','مهندس','محامي','ممرضة','نجارة','حدادة','خبازة','صيادة','فلاحة',
+  'راعية','تاجرة','كاتبة','رسامة','شاعرة','عالمة','باحثة','قاضية','شرطية','جندية',
+  'قائدة','زعيمة','رئيسة','وزيرة','سفيرة','أميرة','حكيمة','مدربة','لاعبة','طيارة'
 ];
 
 // ── KEYBOARD ROWS ──
@@ -290,12 +326,22 @@ function norm(ch){return ch.replace(/[أإآ]/g,'ا')}
 
 // ── STATE ──
 let secret='', gridData=[], curRow=0, curCol=0, done=false;
-let resultLog=[];
-let stats = JSON.parse(localStorage.getItem('huroof_stats')||'{"played":0,"wins":0,"streak":0}');
+let resultLog=[], lastWord='';
+let stats = loadStats();
+
+function loadStats(){
+  const def={played:0,wins:0,streak:0,best:0,dist:[0,0,0,0,0,0]};
+  try{ return Object.assign(def, JSON.parse(localStorage.getItem('huroof_stats')||'{}')); }
+  catch{ return def; }
+}
+function saveStats(){ localStorage.setItem('huroof_stats',JSON.stringify(stats)); }
 
 // ── INIT ──
 function newGame(){
-  secret = WORDS[Math.floor(Math.random()*WORDS.length)];
+  // اختيار كلمة جديدة مع تجنّب تكرار آخر كلمة مباشرة
+  do{ secret = WORDS[Math.floor(Math.random()*WORDS.length)]; }
+  while(WORDS.length>1 && secret===lastWord);
+  lastWord = secret;
   gridData = Array.from({length:6},()=>Array(5).fill(''));
   curRow=0; curCol=0; done=false; resultLog=[];
   document.getElementById('end-overlay').classList.remove('open');
@@ -374,16 +420,19 @@ function submitGuess(){
     curRow++; curCol=0;
     if(won){
       done=true;
+      const tries=rowFinished+1;
       stats.played++; stats.wins++; stats.streak++;
-      localStorage.setItem('huroof_stats',JSON.stringify(stats));
+      if(stats.streak>stats.best) stats.best=stats.streak;
+      stats.dist[tries-1]++;
+      saveStats();
       for(let c=0;c<5;c++){
         setTimeout(()=>document.getElementById(`t${rowFinished}${c}`).classList.add('bounce'),c*80+200);
       }
-      setTimeout(()=>showEnd(true,rowFinished+1),900);
+      setTimeout(()=>showEnd(true,tries),900);
     } else if(curRow>=6){
       done=true;
       stats.played++; stats.streak=0;
-      localStorage.setItem('huroof_stats',JSON.stringify(stats));
+      saveStats();
       setTimeout(()=>showEnd(false,6),500);
     }
     renderStats();
@@ -465,7 +514,29 @@ function showEnd(won,tries){
   document.getElementById('end-msg').innerHTML=won
     ?`وجدت الكلمة في <b>${tries}</b> محاولة`
     :`الكلمة كانت: <b>${secret}</b>`;
+  renderEndStats(won?tries:0);
   document.getElementById('end-overlay').classList.add('open');
+}
+
+function renderEndStats(lastTries){
+  const pct = stats.played? Math.round(stats.wins/stats.played*100):0;
+  document.getElementById('es-played').textContent=stats.played;
+  document.getElementById('es-pct').textContent=pct+'%';
+  document.getElementById('es-streak').textContent=stats.streak;
+  document.getElementById('es-best').textContent=stats.best;
+  // توزيع المحاولات
+  const max=Math.max(1,...stats.dist);
+  const wrap=document.getElementById('dist-wrap');
+  wrap.innerHTML='';
+  stats.dist.forEach((n,i)=>{
+    const row=document.createElement('div');
+    row.className='dist-row';
+    const w=Math.max(8,Math.round(n/max*100));
+    const hot=(i+1)===lastTries?' dist-hot':'';
+    row.innerHTML=`<span class="dist-label">${i+1}</span>`+
+      `<div class="dist-bar${hot}" style="width:${w}%">${n}</div>`;
+    wrap.appendChild(row);
+  });
 }
 
 // ── SHARE ──
