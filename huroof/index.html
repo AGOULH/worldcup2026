@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>حروف — لعبة الكلمات العربية</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--card:#161b22;--border:#30363d;
+  --gold:#C9A84C;--gold2:#F0D080;
+  --green:#1a472a;--green-b:#2ea043;
+  --yellow:#4a3200;--yellow-b:#d29922;
+  --absent:#21262d;--absent-b:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --tile:58px;
+}
+@media(max-width:380px){:root{--tile:50px}}
+
+html,body{
+  font-family:'Tajawal',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  user-select:none;-webkit-tap-highlight-color:transparent;
+}
+
+/* ── HEADER ── */
+header{
+  width:100%;max-width:520px;padding:1rem 1rem .75rem;
+  text-align:center;border-bottom:1px solid var(--border);
+  margin-bottom:.75rem;position:relative;
+}
+.logo{font-size:2.2rem;font-weight:900;color:var(--gold);letter-spacing:4px;line-height:1}
+.logo-sub{font-size:.78rem;color:var(--muted);margin-top:.2rem}
+.header-btns{position:absolute;left:1rem;top:50%;transform:translateY(-50%);display:flex;gap:.4rem}
+.icon-btn{
+  background:none;border:1px solid var(--border);border-radius:8px;
+  color:var(--muted);cursor:pointer;width:36px;height:36px;font-size:1rem;
+  display:flex;align-items:center;justify-content:center;transition:border-color .2s,color .2s;
+}
+.icon-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── STATS BAR ── */
+.stats-bar{
+  display:flex;gap:2rem;justify-content:center;
+  margin-bottom:.875rem;font-size:.73rem;color:var(--muted);
+}
+.s-num{display:block;font-size:1.4rem;font-weight:700;color:var(--text);text-align:center}
+
+/* ── GRID ── */
+.grid{
+  display:flex;flex-direction:column;gap:.45rem;
+  margin-bottom:1.25rem;
+}
+.row{display:flex;gap:.45rem}
+
+.tile{
+  width:var(--tile);height:var(--tile);
+  border:2px solid var(--border);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.55rem;font-weight:700;
+  transition:border-color .15s;
+}
+.tile.filled{border-color:#6e7681;animation:pop .08s ease}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+
+.tile.correct {background:var(--green); border-color:var(--green-b);  color:#fff}
+.tile.present {background:var(--yellow);border-color:var(--yellow-b); color:#fff}
+.tile.absent  {background:var(--absent);border-color:var(--absent-b); color:var(--muted)}
+
+.row.shake .tile{animation:shake .45s ease}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-7px)}40%{transform:translateX(7px)}
+  60%{transform:translateX(-4px)}80%{transform:translateX(4px)}
+}
+.tile.bounce{animation:bounce .55s ease}
+@keyframes bounce{
+  0%,100%{transform:translateY(0)}
+  30%{transform:translateY(-14px)}60%{transform:translateY(-6px)}
+}
+.tile.flip{animation:flip .45s ease forwards}
+@keyframes flip{
+  0%{transform:scaleY(1)}40%{transform:scaleY(0)}100%{transform:scaleY(1)}
+}
+
+/* ── KEYBOARD ── */
+.keyboard{
+  display:flex;flex-direction:column;gap:.35rem;
+  width:100%;max-width:520px;padding:0 .4rem 1rem;
+}
+.kb-row{display:flex;justify-content:center;gap:.28rem}
+.key{
+  height:50px;border-radius:7px;
+  background:#21262d;border:1px solid #30363d;
+  color:var(--text);font-family:'Tajawal',sans-serif;
+  font-size:1.15rem;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex:1;max-width:38px;
+  transition:background .2s,transform .1s,border-color .2s;
+}
+.key:active{transform:scale(.92)}
+.key.action{max-width:56px;font-size:.78rem;background:#2d333b;border-color:#444c56}
+.key.correct{background:var(--green); border-color:var(--green-b)}
+.key.present{background:var(--yellow);border-color:var(--yellow-b)}
+.key.absent {background:#0d1117;     border-color:#21262d;color:#6e7681}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;top:1.2rem;left:50%;
+  transform:translateX(-50%) translateY(-80px);
+  background:var(--text);color:var(--bg);
+  padding:.55rem 1.25rem;border-radius:20px;
+  font-weight:700;font-size:.88rem;
+  transition:transform .3s ease;z-index:999;
+  white-space:nowrap;pointer-events:none;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── MODALS ── */
+.overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;z-index:100;
+}
+.overlay.open{display:flex}
+.modal{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:18px;padding:2rem;
+  max-width:360px;width:92%;text-align:center;
+  position:relative;
+}
+.modal-close{
+  position:absolute;top:.75rem;left:.75rem;
+  background:none;border:1px solid var(--border);border-radius:7px;
+  color:var(--muted);cursor:pointer;width:32px;height:32px;font-size:1rem;
+}
+.modal-close:hover{border-color:var(--gold);color:var(--gold)}
+
+/* End modal */
+.end-emoji{font-size:3.2rem;display:block;margin-bottom:.6rem}
+.end-title{font-size:1.5rem;font-weight:900;color:var(--gold);margin-bottom:.35rem}
+.end-msg{font-size:.9rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6}
+.end-msg b{color:var(--text);font-size:1.1rem}
+.end-share{
+  display:flex;gap:.5rem;flex-direction:column;margin-bottom:1rem;
+}
+/* End stats */
+.es-grid{display:flex;justify-content:space-between;gap:.4rem;margin-bottom:1.1rem}
+.es-item{flex:1;display:flex;flex-direction:column;align-items:center}
+.es-num{font-size:1.35rem;font-weight:900;color:var(--text);line-height:1.1}
+.es-lbl{font-size:.62rem;color:var(--muted);margin-top:.15rem;text-align:center}
+.dist-title{font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:.5rem;text-align:right}
+.dist-wrap{display:flex;flex-direction:column;gap:.28rem;margin-bottom:1.1rem}
+.dist-row{display:flex;align-items:center;gap:.45rem;direction:rtl}
+.dist-label{font-size:.78rem;font-weight:700;color:var(--muted);width:14px;text-align:center;flex-shrink:0}
+.dist-bar{
+  background:#30363d;color:#fff;font-size:.72rem;font-weight:700;
+  padding:.12rem .45rem;border-radius:4px;min-width:24px;
+  display:flex;align-items:center;justify-content:flex-end;
+  transition:width .5s ease;
+}
+.dist-bar.dist-hot{background:var(--green-b)}
+.btn-share{
+  background:#0d419d;color:#fff;border:none;border-radius:10px;
+  padding:.65rem;font-family:'Tajawal',sans-serif;font-weight:700;font-size:.9rem;
+  cursor:pointer;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:.4rem;
+}
+.btn-share:hover{opacity:.85}
+.btn-new{
+  background:linear-gradient(135deg,#b8872a,#8a6015);
+  color:#fff3d0;border:none;border-radius:10px;
+  padding:.7rem;font-family:'Tajawal',sans-serif;font-weight:700;font-size:.9rem;
+  cursor:pointer;transition:opacity .2s;width:100%;
+}
+.btn-new:hover{opacity:.88}
+
+/* Help modal */
+.help-title{font-size:1.3rem;font-weight:900;color:var(--gold);margin-bottom:1rem}
+.example{margin-bottom:1rem;text-align:right}
+.example p{font-size:.78rem;color:var(--muted);margin-top:.35rem;line-height:1.5}
+.ex-row{display:flex;gap:.35rem;margin-bottom:.3rem}
+.ex-tile{
+  width:42px;height:42px;border:2px solid var(--border);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;font-weight:700;
+}
+.ex-tile.correct{background:var(--green);border-color:var(--green-b);color:#fff}
+.ex-tile.present{background:var(--yellow);border-color:var(--yellow-b);color:#fff}
+.ex-tile.absent {background:var(--absent);border-color:var(--absent-b);color:var(--muted)}
+.rule-row{display:flex;align-items:flex-start;gap:.6rem;text-align:right;margin-bottom:.6rem;font-size:.8rem;line-height:1.5}
+.rule-icon{font-size:1.1rem;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-btns">
+    <button class="icon-btn" onclick="openHelp()" title="كيف تلعب؟">❓</button>
+  </div>
+  <div class="logo">حُروف</div>
+  <div class="logo-sub">خمّن الكلمة في ٦ محاولات</div>
+</header>
+
+<div class="stats-bar">
+  <div><span class="s-num" id="s-played">0</span>ألعاب</div>
+  <div><span class="s-num" id="s-wins">0</span>انتصارات</div>
+  <div><span class="s-num" id="s-streak">0</span>تتالي</div>
+</div>
+
+<div class="grid" id="grid"></div>
+<div class="keyboard" id="keyboard"></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- End overlay -->
+<div class="overlay" id="end-overlay">
+  <div class="modal">
+    <span class="end-emoji" id="end-emoji"></span>
+    <div class="end-title" id="end-title"></div>
+    <div class="end-msg" id="end-msg"></div>
+
+    <div class="es-grid">
+      <div class="es-item"><span class="es-num" id="es-played">0</span><span class="es-lbl">ألعاب</span></div>
+      <div class="es-item"><span class="es-num" id="es-pct">0%</span><span class="es-lbl">فوز</span></div>
+      <div class="es-item"><span class="es-num" id="es-streak">0</span><span class="es-lbl">تتالي</span></div>
+      <div class="es-item"><span class="es-num" id="es-best">0</span><span class="es-lbl">أفضل تتالي</span></div>
+    </div>
+    <div class="dist-title">توزيع المحاولات</div>
+    <div class="dist-wrap" id="dist-wrap"></div>
+
+    <div class="end-share">
+      <button class="btn-share" id="btn-share" onclick="shareResult()">📋 نسخ النتيجة</button>
+    </div>
+    <button class="btn-new" onclick="newGame()">🔄 لعبة جديدة</button>
+  </div>
+</div>
+
+<!-- Help overlay -->
+<div class="overlay" id="help-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeHelp()">✕</button>
+    <div class="help-title">كيف تلعب حروف؟</div>
+
+    <div class="example">
+      <div class="ex-row">
+        <div class="ex-tile correct">س</div>
+        <div class="ex-tile">ي</div>
+        <div class="ex-tile">ا</div>
+        <div class="ex-tile">ر</div>
+        <div class="ex-tile">ة</div>
+      </div>
+      <p>الحرف <b>س</b> موجود في المكان الصحيح</p>
+    </div>
+
+    <div class="example">
+      <div class="ex-row">
+        <div class="ex-tile">ك</div>
+        <div class="ex-tile present">ت</div>
+        <div class="ex-tile">ا</div>
+        <div class="ex-tile">ب</div>
+        <div class="ex-tile">ة</div>
+      </div>
+      <p>الحرف <b>ت</b> موجود في الكلمة لكن في مكان مختلف</p>
+    </div>
+
+    <div class="example">
+      <div class="ex-row">
+        <div class="ex-tile">ر</div>
+        <div class="ex-tile">ي</div>
+        <div class="ex-tile absent">ا</div>
+        <div class="ex-tile">ض</div>
+        <div class="ex-tile">ة</div>
+      </div>
+      <p>الحرف <b>ا</b> غير موجود في الكلمة</p>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:1rem;text-align:right">
+      <div class="rule-row"><span class="rule-icon">📝</span>اكتب كلمة من ٥ حروف واضغط <b>↵</b></div>
+      <div class="rule-row"><span class="rule-icon">🎯</span>لديك ٦ محاولات للوصول إلى الكلمة الصحيحة</div>
+      <div class="rule-row"><span class="rule-icon">✍️</span>الهمزات (أ إ آ) تُحسب مثل الألف (ا)</div>
+      <div class="rule-row"><span class="rule-icon">💡</span>كلمة جديدة في كل لعبة</div>
+    </div>
+
+    <button class="btn-new" style="margin-top:1rem" onclick="closeHelp()">ابدأ اللعب!</button>
+  </div>
+</div>
+
+<script>
+// ── WORD LIST (5 Arabic characters each) ──
+const WORDS = [
+  // مفاهيم وأماكن
+  'مدرسة','سيارة','حديقة','جامعة','طالبة','كتابة','نافذة','خريطة','أحلام','فراشة',
+  'أشجار','مكتبة','أسماك','أقلام','أبواب','رياضة','ثقافة','عبارة','إجابة','حضارة',
+  'طبيعة','صناعة','عدالة','كرامة','سلامة','شجاعة','حكومة','قيادة','بناية','ذاكرة',
+  'نظافة','وطنية','حلاوة','صداقة','سعادة','بطاقة','إجازة','دراسة','سياسة','تجارة',
+  'وزارة','حقيبة','رسالة','ألوان','أحجار','أسرار','أفكار','أخبار','قمصان','طوابع',
+  // نقل ومركبات
+  'سفينة','طائرة','قطارة','دراجة','حافلة','شاحنة','مركبة','قاطرة','عربات','زوارق',
+  // طبيعة وفلك
+  'جزيرة','صحراء','غابات','بحيرة','نجومة','كواكب','قمرية','شمسية','غيومة','أمطار',
+  'ثلوجة','رياحة','عواصف','حرارة','برودة','رطوبة','جبالة','وديان','سهولة','هضبات',
+  // طعام
+  'تفاحة','موزات','رمانة','مانجو','كرزات','خوخات','عنبية','فطائر','شطيرة','عصائر',
+  'معجون','مخبوز','جزرات','بطاطس','طماطم','خيارة','فلفلة','بصلات','ثومات','ليمون',
+  'حليبة','زبادي','عسلية','تمرات','لوزات','فستقة','سمسمة','قهوات','شايات','سكرية',
+  // مهن
+  'معلمة','طبيبة','مهندس','محامي','ممرضة','نجارة','حدادة','خبازة','صيادة','فلاحة',
+  'راعية','تاجرة','كاتبة','رسامة','شاعرة','عالمة','باحثة','قاضية','شرطية','جندية',
+  'قائدة','زعيمة','رئيسة','وزيرة','سفيرة','أميرة','حكيمة','مدربة','لاعبة','طيارة'
+];
+
+// ── KEYBOARD ROWS ──
+const KB_ROWS = [
+  ['ض','ص','ث','ق','ف','غ','ع','ه','خ','ح','ج'],
+  ['ش','س','ي','ب','ل','ا','ت','ن','م','ك','ط'],
+  ['ذ','ئ','ء','ؤ','ر','ى','ة','و','ز','ظ','د'],
+  ['⌫','أ','إ','آ','↵']
+];
+
+// Normalize alef variants for comparison
+function norm(ch){return ch.replace(/[أإآ]/g,'ا')}
+
+// ── STATE ──
+let secret='', gridData=[], curRow=0, curCol=0, done=false;
+let resultLog=[], lastWord='';
+let stats = loadStats();
+
+function loadStats(){
+  const def={played:0,wins:0,streak:0,best:0,dist:[0,0,0,0,0,0]};
+  try{ return Object.assign(def, JSON.parse(localStorage.getItem('huroof_stats')||'{}')); }
+  catch{ return def; }
+}
+function saveStats(){ localStorage.setItem('huroof_stats',JSON.stringify(stats)); }
+
+// ── INIT ──
+function newGame(){
+  // اختيار كلمة جديدة مع تجنّب تكرار آخر كلمة مباشرة
+  do{ secret = WORDS[Math.floor(Math.random()*WORDS.length)]; }
+  while(WORDS.length>1 && secret===lastWord);
+  lastWord = secret;
+  gridData = Array.from({length:6},()=>Array(5).fill(''));
+  curRow=0; curCol=0; done=false; resultLog=[];
+  document.getElementById('end-overlay').classList.remove('open');
+  buildGrid();
+  buildKeyboard();
+  renderStats();
+}
+
+function buildGrid(){
+  const g=document.getElementById('grid');
+  g.innerHTML='';
+  for(let r=0;r<6;r++){
+    const row=document.createElement('div');
+    row.className='row'; row.id=`r${r}`;
+    for(let c=0;c<5;c++){
+      const t=document.createElement('div');
+      t.className='tile'; t.id=`t${r}${c}`;
+      row.appendChild(t);
+    }
+    g.appendChild(row);
+  }
+}
+
+function buildKeyboard(){
+  const kb=document.getElementById('keyboard');
+  kb.innerHTML='';
+  KB_ROWS.forEach(letters=>{
+    const row=document.createElement('div');
+    row.className='kb-row';
+    letters.forEach(l=>{
+      const btn=document.createElement('button');
+      btn.className='key'+(l==='⌫'||l==='↵'?' action':'');
+      btn.textContent=l;
+      btn.id='k'+l;
+      btn.addEventListener('click',()=>handleKey(l));
+      row.appendChild(btn);
+    });
+    kb.appendChild(row);
+  });
+}
+
+// ── INPUT ──
+function handleKey(k){
+  if(done) return;
+  if(k==='⌫') deleteLetter();
+  else if(k==='↵') submitGuess();
+  else typeLetter(k);
+}
+
+function typeLetter(l){
+  if(curCol>=5) return;
+  gridData[curRow][curCol]=l;
+  const t=document.getElementById(`t${curRow}${curCol}`);
+  t.textContent=l; t.classList.add('filled');
+  curCol++;
+}
+
+function deleteLetter(){
+  if(curCol<=0) return;
+  curCol--;
+  gridData[curRow][curCol]='';
+  const t=document.getElementById(`t${curRow}${curCol}`);
+  t.textContent=''; t.classList.remove('filled');
+}
+
+// ── GUESS LOGIC ──
+function submitGuess(){
+  if(curCol<5){shakeRow(curRow);toast('الكلمة ناقصة!');return;}
+  const guess=gridData[curRow].join('');
+  const result=checkGuess(guess,secret);
+  resultLog.push(result);
+  revealRow(curRow,result,()=>{
+    updateKeyboard(guess,result);
+    const won=result.every(r=>r==='correct');
+    const rowFinished=curRow;
+    curRow++; curCol=0;
+    if(won){
+      done=true;
+      const tries=rowFinished+1;
+      stats.played++; stats.wins++; stats.streak++;
+      if(stats.streak>stats.best) stats.best=stats.streak;
+      stats.dist[tries-1]++;
+      saveStats();
+      for(let c=0;c<5;c++){
+        setTimeout(()=>document.getElementById(`t${rowFinished}${c}`).classList.add('bounce'),c*80+200);
+      }
+      setTimeout(()=>showEnd(true,tries),900);
+    } else if(curRow>=6){
+      done=true;
+      stats.played++; stats.streak=0;
+      saveStats();
+      setTimeout(()=>showEnd(false,6),500);
+    }
+    renderStats();
+  });
+}
+
+function checkGuess(guess,secret){
+  const g=[...guess], s=[...secret];
+  const res=Array(5).fill('absent');
+  // Pass 1: exact
+  for(let i=0;i<5;i++){
+    if(norm(g[i])===norm(s[i])){res[i]='correct';s[i]=null;g[i]=null;}
+  }
+  // Pass 2: present
+  for(let i=0;i<5;i++){
+    if(g[i]===null) continue;
+    const j=s.findIndex(c=>c!==null&&norm(c)===norm(g[i]));
+    if(j!==-1){res[i]='present';s[j]=null;}
+  }
+  return res;
+}
+
+// ── REVEAL ANIMATION ──
+function revealRow(row,result,cb){
+  for(let c=0;c<5;c++){
+    const t=document.getElementById(`t${row}${c}`);
+    const cls=result[c];
+    setTimeout(()=>{
+      t.classList.add('flip');
+      setTimeout(()=>{t.classList.remove('flip');t.classList.add(cls);},220);
+      if(c===4) setTimeout(cb,400);
+    },c*110);
+  }
+}
+
+function shakeRow(row){
+  const r=document.getElementById(`r${row}`);
+  r.classList.add('shake');
+  setTimeout(()=>r.classList.remove('shake'),500);
+}
+
+// ── KEYBOARD COLORS ──
+const KP={correct:3,present:2,absent:1};
+function updateKeyboard(guess,result){
+  [...guess].forEach((l,i)=>{
+    // Try both the actual letter and the key label (أ maps to ا etc.)
+    const ids=['k'+l];
+    if(/[أإآ]/.test(l)) ids.push('kا');
+    ids.forEach(id=>{
+      const btn=document.getElementById(id);
+      if(!btn) return;
+      const cur=btn.dataset.s||'';
+      if(!cur||(KP[result[i]]||0)>(KP[cur]||0)){
+        btn.dataset.s=result[i];
+        btn.className='key'+(btn.classList.contains('action')?' action':'')+' '+result[i];
+      }
+    });
+  });
+}
+
+// ── UI HELPERS ──
+let _toastT;
+function toast(msg,dur=1600){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT=setTimeout(()=>el.classList.remove('show'),dur);
+}
+
+function renderStats(){
+  document.getElementById('s-played').textContent=stats.played;
+  document.getElementById('s-wins').textContent=stats.wins;
+  document.getElementById('s-streak').textContent=stats.streak;
+}
+
+function showEnd(won,tries){
+  document.getElementById('end-emoji').textContent=won?'🎉':'😔';
+  document.getElementById('end-title').textContent=won?'أحسنت! 🏆':'للأسف!';
+  document.getElementById('end-msg').innerHTML=won
+    ?`وجدت الكلمة في <b>${tries}</b> محاولة`
+    :`الكلمة كانت: <b>${secret}</b>`;
+  renderEndStats(won?tries:0);
+  document.getElementById('end-overlay').classList.add('open');
+}
+
+function renderEndStats(lastTries){
+  const pct = stats.played? Math.round(stats.wins/stats.played*100):0;
+  document.getElementById('es-played').textContent=stats.played;
+  document.getElementById('es-pct').textContent=pct+'%';
+  document.getElementById('es-streak').textContent=stats.streak;
+  document.getElementById('es-best').textContent=stats.best;
+  // توزيع المحاولات
+  const max=Math.max(1,...stats.dist);
+  const wrap=document.getElementById('dist-wrap');
+  wrap.innerHTML='';
+  stats.dist.forEach((n,i)=>{
+    const row=document.createElement('div');
+    row.className='dist-row';
+    const w=Math.max(8,Math.round(n/max*100));
+    const hot=(i+1)===lastTries?' dist-hot':'';
+    row.innerHTML=`<span class="dist-label">${i+1}</span>`+
+      `<div class="dist-bar${hot}" style="width:${w}%">${n}</div>`;
+    wrap.appendChild(row);
+  });
+}
+
+// ── SHARE ──
+function shareResult(){
+  const map={correct:'🟩',present:'🟨',absent:'⬜'};
+  const lines=resultLog.map(row=>row.map(r=>map[r]).join('')).join('\n');
+  const total=resultLog.length;
+  const won=resultLog[total-1]?.every(r=>r==='correct');
+  const text=`حروف ${won?total:'-'}/6\n${lines}`;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>toast('تم النسخ! 📋'));
+  } else {
+    const ta=document.createElement('textarea');
+    ta.value=text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('تم النسخ! 📋');
+  }
+}
+
+// ── HELP MODAL ──
+function openHelp(){document.getElementById('help-overlay').classList.add('open')}
+function closeHelp(){document.getElementById('help-overlay').classList.remove('open')}
+
+// ── PHYSICAL KEYBOARD ──
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  if(e.key==='Backspace') handleKey('⌫');
+  else if(e.key==='Enter') handleKey('↵');
+  // Arabic letters from physical keyboard
+  else if([...e.key].length===1){
+    const valid=[
+      'ض','ص','ث','ق','ف','غ','ع','ه','خ','ح','ج',
+      'ش','س','ي','ب','ل','ا','ت','ن','م','ك','ط',
+      'ذ','ئ','ء','ؤ','ر','ى','ة','و','ز','ظ','د',
+      'أ','إ','آ'
+    ];
+    if(valid.includes(e.key)) handleKey(e.key);
+  }
+});
+
+// ── START ──
+newGame();
+</script>
+</body>
+</html>
