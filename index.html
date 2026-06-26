@@ -1164,6 +1164,11 @@ function buildSharePage(){
     </div>
   </div>
   <div class="card">
+    <div class="sec-title"><span class="icon">🏅</span> بطاقة آلية النقاط</div>
+    <div style="font-size:.82rem;color:var(--muted2);margin-bottom:.75rem">اعرض وشارك شرح نظام النقاط كصورة على واتساب</div>
+    <button class="btn" onclick="exportScoringCard()">🃏 عرض بطاقة آلية النقاط</button>
+  </div>
+  <div class="card">
     <div class="sec-title"><span class="icon">📊</span> ملخص المسابقة</div>
     <div style="font-size:.8rem;line-height:2;color:var(--muted2)">
       <div>👥 المشاركون: <strong style="color:var(--text)">${lb.length}</strong></div>
@@ -1670,6 +1675,186 @@ function buildReportCanvas(mode){
   x.fillText('مسابقة توقع كأس العالم 2026 | إعداد: حسن العاقول',W/2,y+40);
 
   return {cv,W,H};
+}
+
+// ── SCORING CARD ──────────────────────────────────────────────
+function buildScoringCard(){
+  const W=720, H=1080;
+  const cv=document.createElement('canvas');
+  cv.width=W; cv.height=H;
+  const cx=cv.getContext('2d');
+  const gold='#C9A84C', gold2='#F0D080', gold3='#ffeaa0';
+  const dark='#060d1a', card='#0c1628', card2='#0e1a2c';
+  const green='#00c853', red='#f44336', blue='#3d8ef0', orange='#ff9800';
+  const text='#d8e8f8', muted='#5a7494', muted2='#7a94b4';
+
+  // خلفية
+  const bg=cx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#040c1c'); bg.addColorStop(0.5,'#0a1628'); bg.addColorStop(1,'#040c1c');
+  cx.fillStyle=bg; cx.fillRect(0,0,W,H);
+
+  // نجوم عشوائية
+  cx.fillStyle='rgba(255,255,255,0.25)';
+  [[40,60],[680,90],[120,200],[600,150],[30,400],[700,380],[80,700],[650,720],[350,50],[360,1030]].forEach(([x,y])=>{
+    cx.beginPath(); cx.arc(x,y,1.2,0,Math.PI*2); cx.fill();
+  });
+
+  // خط ذهبي علوي
+  const glowTop=cx.createLinearGradient(0,0,W,0);
+  glowTop.addColorStop(0,'transparent'); glowTop.addColorStop(0.5,gold); glowTop.addColorStop(1,'transparent');
+  cx.fillStyle=glowTop; cx.fillRect(0,0,W,2);
+
+  // هيدر
+  cx.fillStyle=gold+'22'; cx.fillRect(0,0,W,130);
+  cx.font='bold 28px Tajawal,Arial'; cx.fillStyle=gold2; cx.textAlign='center';
+  cx.fillText('🏆  كأس العالم 2026  🏆',W/2,52);
+  cx.font='bold 36px Tajawal,Arial'; cx.fillStyle=gold3;
+  cx.fillText('آلية احتساب النقاط',W/2,100);
+  cx.font='20px Tajawal,Arial'; cx.fillStyle=muted2;
+  cx.fillText('مسابقة توقع النتائج',W/2,128);
+
+  // خط فاصل
+  const sep1=cx.createLinearGradient(0,0,W,0);
+  sep1.addColorStop(0,'transparent'); sep1.addColorStop(0.5,gold+'88'); sep1.addColorStop(1,'transparent');
+  cx.fillStyle=sep1; cx.fillRect(0,140,W,1.5);
+
+  // ── قسم 1: دور المجموعات ──
+  let y=165;
+  // عنوان القسم
+  cx.fillStyle=card2+'cc'; cx.beginPath();
+  cx.roundRect(30,y,W-60,44,10); cx.fill();
+  cx.strokeStyle=blue+'88'; cx.lineWidth=1;
+  cx.beginPath(); cx.roundRect(30,y,W-60,44,10); cx.stroke();
+  cx.font='bold 22px Tajawal,Arial'; cx.fillStyle=blue; cx.textAlign='center';
+  cx.fillText('⚽  دور المجموعات',W/2,y+29);
+
+  y+=58;
+  const rows1=[
+    {pts:5, color:gold3,   bg:'#1a1400', border:gold+'66',   label:'النتيجة الصحيحة بالضبط',        ex:'توقعت 2-1  ✓  النتيجة 2-1'},
+    {pts:2, color:'#a0c8ff',bg:'#091828', border:blue+'66',  label:'الفائز أو التعادل صحيح',         ex:'توقعت 2-1  ✓  النتيجة 3-1 (فوز صحيح)'},
+    {pts:0, color:'#ff8a80',bg:'#1a0808', border:red+'55',   label:'توقع خاطئ',                      ex:'توقعت فوز  ✗  النتيجة تعادل أو خسارة'},
+  ];
+  rows1.forEach(r=>{
+    cx.fillStyle=r.bg+'ee'; cx.beginPath(); cx.roundRect(30,y,W-60,72,10); cx.fill();
+    cx.strokeStyle=r.border; cx.lineWidth=1.2;
+    cx.beginPath(); cx.roundRect(30,y,W-60,72,10); cx.stroke();
+    // نقاط
+    cx.font='bold 30px Tajawal,Arial'; cx.fillStyle=r.color; cx.textAlign='right';
+    cx.fillText(r.pts,W-58,y+44);
+    cx.font='16px Tajawal,Arial'; cx.fillStyle=r.color+'aa'; cx.textAlign='right';
+    cx.fillText('نقطة',W-58,y+63);
+    // نص
+    cx.font='bold 20px Tajawal,Arial'; cx.fillStyle=text; cx.textAlign='right';
+    cx.fillText(r.label,W-105,y+30);
+    cx.font='17px Tajawal,Arial'; cx.fillStyle=muted2; cx.textAlign='right';
+    cx.fillText(r.ex,W-105,y+56);
+    y+=82;
+  });
+
+  // خط فاصل
+  const sep2=cx.createLinearGradient(0,0,W,0);
+  sep2.addColorStop(0,'transparent'); sep2.addColorStop(0.5,orange+'66'); sep2.addColorStop(1,'transparent');
+  cx.fillStyle=sep2; cx.fillRect(0,y+6,W,1.5);
+  y+=22;
+
+  // ── قسم 2: الأدوار الإقصائية ──
+  cx.fillStyle=card2+'cc'; cx.beginPath();
+  cx.roundRect(30,y,W-60,44,10); cx.fill();
+  cx.strokeStyle=orange+'88'; cx.lineWidth=1;
+  cx.beginPath(); cx.roundRect(30,y,W-60,44,10); cx.stroke();
+  cx.font='bold 22px Tajawal,Arial'; cx.fillStyle=orange; cx.textAlign='center';
+  cx.fillText('🏟️  الأدوار الإقصائية',W/2,y+29);
+
+  y+=58;
+  const rows2=[
+    {pts:5, color:gold3,    bg:'#1a1400', border:gold+'66',   label:'الفائز صحيح + النتيجة صحيحة (وقت أصلي)', ex:'توقعت 2-1 وقت أصلي  ✓  انتهت 2-1'},
+    {pts:5, color:gold3,    bg:'#1a1400', border:gold+'66',   label:'الفائز صحيح + توقعت ركلات جزاء ✓',        ex:'توقعت ركلات جزاء  ✓  انتهت بركلات جزاء'},
+    {pts:3, color:'#ffd180',bg:'#1a1000', border:orange+'66', label:'الفائز صحيح + توقعت وقت إضافي ✓',         ex:'توقعت وقت إضافي  ✓  انتهت بوقت إضافي'},
+    {pts:2, color:'#a0c8ff',bg:'#091828', border:blue+'66',   label:'الفائز صحيح فقط (طريقة مختلفة)',           ex:'توقعت ركلات  ✗  انتهت بوقت أصلي (فائز صحيح)'},
+    {pts:0, color:'#ff8a80',bg:'#1a0808', border:red+'55',    label:'الفائز خاطئ',                               ex:'توقعت فوز ألمانيا  ✗  فازت البرازيل'},
+  ];
+  rows2.forEach(r=>{
+    cx.fillStyle=r.bg+'ee'; cx.beginPath(); cx.roundRect(30,y,W-60,72,10); cx.fill();
+    cx.strokeStyle=r.border; cx.lineWidth=1.2;
+    cx.beginPath(); cx.roundRect(30,y,W-60,72,10); cx.stroke();
+    cx.font='bold 30px Tajawal,Arial'; cx.fillStyle=r.color; cx.textAlign='right';
+    cx.fillText(r.pts,W-58,y+44);
+    cx.font='16px Tajawal,Arial'; cx.fillStyle=r.color+'aa'; cx.textAlign='right';
+    cx.fillText('نقطة',W-58,y+63);
+    cx.font='bold 18px Tajawal,Arial'; cx.fillStyle=text; cx.textAlign='right';
+    cx.fillText(r.label,W-105,y+28);
+    cx.font='16px Tajawal,Arial'; cx.fillStyle=muted2; cx.textAlign='right';
+    cx.fillText(r.ex,W-105,y+54);
+    y+=82;
+  });
+
+  // ملاحظة
+  y+=4;
+  cx.fillStyle='rgba(201,168,76,0.08)'; cx.beginPath(); cx.roundRect(30,y,W-60,52,8); cx.fill();
+  cx.strokeStyle=gold+'33'; cx.lineWidth=1; cx.beginPath(); cx.roundRect(30,y,W-60,52,8); cx.stroke();
+  cx.font='17px Tajawal,Arial'; cx.fillStyle=muted2; cx.textAlign='center';
+  cx.fillText('⏰ التوقع يُفتح 48 ساعة قبل المباراة ويُغلق عند الانطلاق',W/2,y+22);
+  cx.fillText('🔒 لا يمكن تعديل التوقع بعد إغلاقه',W/2,y+44);
+
+  // فوتر
+  const footerY=H-38;
+  const fgrad=cx.createLinearGradient(0,0,W,0);
+  fgrad.addColorStop(0,'transparent'); fgrad.addColorStop(0.5,gold+'44'); fgrad.addColorStop(1,'transparent');
+  cx.fillStyle=fgrad; cx.fillRect(0,footerY-12,W,1);
+  cx.font='18px Tajawal,Arial'; cx.fillStyle=gold; cx.textAlign='center';
+  cx.fillText('إعداد: حسن العاقول  •  كأس العالم 2026',W/2,footerY+14);
+
+  // خط ذهبي سفلي
+  const glowBot=cx.createLinearGradient(0,0,W,0);
+  glowBot.addColorStop(0,'transparent'); glowBot.addColorStop(0.5,gold); glowBot.addColorStop(1,'transparent');
+  cx.fillStyle=glowBot; cx.fillRect(0,H-2,W,2);
+
+  return {cv,W,H};
+}
+
+async function exportScoringCard(){
+  showNotif('جاري إنشاء البطاقة...','🃏',2000);
+  const {cv,W,H}=buildScoringCard();
+  const imgData=cv.toDataURL('image/jpeg',0.94);
+  const fname='بطاقة-آلية-النقاط';
+  const overlay=document.createElement('div');
+  overlay.id='scoring-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(3,7,15,.93);z-index:9000;display:flex;flex-direction:column;overflow:hidden';
+  overlay.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(201,168,76,.2);flex-shrink:0">
+      <span style="font-size:.85rem;font-weight:700;color:var(--gold)">🃏 آلية النقاط</span>
+      <button onclick="document.getElementById('scoring-overlay').remove()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:.2rem .5rem">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden;display:flex;justify-content:center;padding:.75rem">
+      <img src="${imgData}" style="width:100%;max-width:600px;border-radius:10px;display:block" loading="lazy"/>
+    </div>
+    <div style="padding:.75rem;background:rgba(0,0,0,.5);border-top:1px solid rgba(201,168,76,.2);display:flex;gap:.5rem;flex-shrink:0">
+      <button class="btn btn-green" style="flex:1" onclick="_scoringShare()">📤 مشاركة (واتساب)</button>
+      <button class="btn btn-blue" style="flex:1" onclick="_scoringDownload()">⬇️ تنزيل صورة</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  window._scoringImgData=imgData;
+  window._scoringFname=fname;
+}
+
+async function _scoringShare(){
+  const imgData=window._scoringImgData, fname=window._scoringFname||'بطاقة-النقاط';
+  if(!imgData) return;
+  try{
+    const blob=await(await fetch(imgData)).blob();
+    const file=new File([blob],fname+'.jpg',{type:'image/jpeg'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:'آلية النقاط - مسابقة كأس العالم 2026'});return;
+    }
+  }catch(_){}
+  _scoringDownload();
+  showNotif('جهازك لا يدعم المشاركة المباشرة — تم تنزيل الصورة','ℹ️',3500);
+}
+function _scoringDownload(){
+  const a=document.createElement('a');
+  a.href=window._scoringImgData; a.download=(window._scoringFname||'بطاقة-النقاط')+'.jpg';
+  document.body.appendChild(a); a.click(); a.remove();
+  showNotif('✓ تم تنزيل البطاقة','🖼️',3000);
 }
 
 async function exportDailyReport(mode){
