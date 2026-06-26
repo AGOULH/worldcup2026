@@ -415,10 +415,15 @@ async function initData(){
     fdb.collection('app').doc('predictions').onSnapshot(s=>{if(s.exists){CACHE.predictions=s.data().data||{};softRefresh();}});
   }catch(e){
     console.warn('Firestore load failed, using local:',e);
+    // مهم: لا نكتب أي شيء على الخادم هنا — القراءة فشلت، فالكتابة ستمحو
+    // بيانات الخادم الحقيقية (المستخدمون/النتائج). نكتفي بالعرض من النسخة المحلية.
     CACHE.users=DB.get('users')||[];
     CACHE.matches=DB.get('matches')||buildMatches();
     CACHE.predictions=DB.get('predictions')||{};
-    ensureAdmin(); ensureMatches();
+    if(!CACHE.users.find(u=>u.username==='admin')){
+      CACHE.users=[...CACHE.users,{username:'admin',password:'admin2026',name:'حسن العاقول',isAdmin:true}];
+    }
+    DB.set('users',CACHE.users); // محلي فقط
     render();
   }
 }
