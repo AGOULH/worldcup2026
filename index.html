@@ -436,16 +436,19 @@ function ensureMatches(){
   }
 }
 // قراءة أحدث قائمة مستخدمين من السيرفر مباشرة (تتجاوز أي كاش قديم)
+// يعيد {users, ok} — ok=false عند فشل القراءة من السيرفر (للتمييز بين خطأ الشبكة وكلمة المرور)
 async function fetchUsersFresh(){
   if(!FB_OK) return DB.users();
   try{
     const s=await fdb.collection('app').doc('users').get({source:'server'});
     if(s.exists){CACHE.users=s.data().list||[];DB.set('users',CACHE.users);}
+    window._usersFetchOk=true;
   }catch(e){
     try{
       const s=await fdb.collection('app').doc('users').get();
       if(s.exists){CACHE.users=s.data().list||[];DB.set('users',CACHE.users);}
-    }catch(e2){console.warn('fetchUsersFresh failed',e2);}
+      window._usersFetchOk=true;
+    }catch(e2){console.warn('fetchUsersFresh failed',e2);window._usersFetchOk=false;}
   }
   return DB.users();
 }
@@ -2211,6 +2214,7 @@ function ensureAdmin(){
   let users=DB.users();
   if(!users.find(u=>u.username==='admin')){
     users.push({username:'admin',password:'admin2026',name:'حسن العاقول',isAdmin:true});
+    CACHE.users=users; // وحّد المرجع حتى تراه القراءات اللاحقة فوراً
     DB.saveUsers(users);
   }
 }
@@ -2219,10 +2223,22 @@ async function doLogin(){
   const pw=cleanInput(document.getElementById('lp')?.value);
   if(!un||!pw){showInlineMsg('lmsg','أدخل اسم المستخدم وكلمة المرور','err');return;}
   showInlineMsg('lmsg','⏳ جاري التحقق...','ok');
-  const users=await fetchUsersFresh(); // أحدث نسخة من السيرفر دائماً
-  ensureAdmin();
+  window._usersFetchOk=true;
+  await fetchUsersFresh(); // أحدث نسخة من السيرفر دائماً
+  // لا نشغّل ensureAdmin عند فشل القراءة حتى لا نكتب قائمة ناقصة على السيرفر
+  if(window._usersFetchOk!==false) ensureAdmin();
+  // نقرأ القائمة بعد ensureAdmin حتى يُحتسب المشرف، ونوحّد المصادر
+  const users=DB.users();
   const u=users.find(x=>cleanInput(x.username).toLowerCase()===un&&cleanInput(x.password)===pw);
-  if(!u){showInlineMsg('lmsg','اسم المستخدم أو كلمة المرور خاطئة','err');return;}
+  if(!u){
+    // إن فشلت قراءة السيرفر، فالغالب أنها مشكلة اتصال لا كلمة مرور
+    if(window._usersFetchOk===false){
+      showInlineMsg('lmsg','تعذّر الاتصال بالخادم — تحقق من الإنترنت وأعد المحاولة','err');
+    }else{
+      showInlineMsg('lmsg','اسم المستخدم أو كلمة المرور خاطئة','err');
+    }
+    return;
+  }
   DB.set('currentUser',u);curView='matches';render();
 }
 async function doRegister(){
