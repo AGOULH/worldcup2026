@@ -386,8 +386,27 @@ const DB={
   }
 };
 
+// ── نسخة احتياطية محلية لقائمة المستخدمين (تنمو فقط، لا تتقلص) ──
+// تحفظ كلمات المرور الأصلية حتى لو مُحيت من الخادم، لاسترجاعها لاحقاً.
+const UBAK_KEY='users_bak';
+function loadUserBak(){return DB.get(UBAK_KEY)||[];}
+function mergeIntoUserBak(list){
+  if(!Array.isArray(list)||!list.length) return;
+  const byName={};
+  loadUserBak().forEach(u=>{if(u&&u.username)byName[u.username.toLowerCase()]=u;});
+  list.forEach(u=>{
+    if(!u||!u.username) return;
+    const k=u.username.toLowerCase(), ex=byName[k];
+    if(!ex) byName[k]=u;                                   // مستخدم جديد
+    else if((!ex.password)&&u.password) byName[k]=u;        // فضّل النسخة التي تحمل كلمة مرور
+  });
+  DB.set(UBAK_KEY,Object.values(byName));
+}
+
 // Hydrate cache from Firestore once, then set up live listeners.
 async function initData(){
+  // احفظ أي قائمة محلية (قد تحوي بيانات ما قبل المحو) قبل أي قراءة من الخادم
+  mergeIntoUserBak(DB.get('users')||[]);
   if(!FB_OK){
     // local-only fallback
     CACHE.users=DB.get('users')||[];
@@ -406,6 +425,7 @@ async function initData(){
     CACHE.users = uSnap.exists ? (uSnap.data().list||[]) : [];
     CACHE.matches = mSnap.exists ? (mSnap.data().list||buildMatches()) : buildMatches();
     CACHE.predictions = pSnap.exists ? (pSnap.data().data||{}) : {};
+    mergeIntoUserBak(CACHE.users); // حدّث النسخة الاحتياطية بأي مستخدمين جدد من الخادم
     // seed defaults if first run
     ensureAdmin(); ensureMatches();
     render();
@@ -446,12 +466,12 @@ async function fetchUsersFresh(){
   if(!FB_OK) return DB.users();
   try{
     const s=await fdb.collection('app').doc('users').get({source:'server'});
-    if(s.exists){CACHE.users=s.data().list||[];DB.set('users',CACHE.users);}
+    if(s.exists){CACHE.users=s.data().list||[];mergeIntoUserBak(CACHE.users);DB.set('users',CACHE.users);}
     window._usersFetchOk=true;
   }catch(e){
     try{
       const s=await fdb.collection('app').doc('users').get();
-      if(s.exists){CACHE.users=s.data().list||[];DB.set('users',CACHE.users);}
+      if(s.exists){CACHE.users=s.data().list||[];mergeIntoUserBak(CACHE.users);DB.set('users',CACHE.users);}
       window._usersFetchOk=true;
     }catch(e2){console.warn('fetchUsersFresh failed',e2);window._usersFetchOk=false;}
   }
@@ -780,10 +800,39 @@ function toggleAgree(){
 }
 function goLogin(){curView='login';render();}
 
+// ── استرجاع الحسابات من النسخة المحلية على هذا الجهاز ──
+async function recoverAccounts(){
+  const bak=loadUserBak();
+  const real=bak.filter(u=>u&&u.username&&u.username.toLowerCase()!=='admin'&&u.password);
+  if(!real.length){showInlineMsg('lmsg','لا توجد نسخة محلية للحسابات على هذا الجهاز','err');return;}
+  if(!confirm(`تم العثور على ${real.length} حساباً محفوظاً على هذا الجهاز (بكلمات المرور).\n\nاسترجاعها إلى الخادم الآن؟`)) return;
+  showInlineMsg('lmsg','⏳ جاري استرجاع الحسابات...','ok');
+  try{
+    await mutateUsers(list=>{
+      const byName={};
+      list.forEach(u=>{if(u&&u.username)byName[u.username.toLowerCase()]=u;});
+      // أضف حسابات النسخة المحلية التي لا توجد على الخادم
+      bak.forEach(u=>{if(u&&u.username){const k=u.username.toLowerCase();if(!byName[k])byName[k]=u;}});
+      if(!byName['admin'])byName['admin']={username:'admin',password:'admin2026',name:'حسن العاقول',isAdmin:true};
+      list.length=0; Object.values(byName).forEach(u=>list.push(u));
+      return true;
+    });
+    showInlineMsg('lmsg',`✓ تم استرجاع ${real.length} حساباً بنجاح! يمكن للمشاركين الدخول الآن.`,'ok');
+  }catch(e){showInlineMsg('lmsg','تعذّر الاسترجاع — تحقق من الإنترنت وأعد المحاولة','err');}
+}
+
 // ── LOGIN PAGE ────────────────────────────────────────────────
 function renderLogin(){
+  const bakCount=loadUserBak().filter(u=>u&&u.username&&u.username.toLowerCase()!=='admin'&&u.password).length;
+  const recoverCard=bakCount>0?`
+  <div class="card" style="border-color:rgba(0,200,83,.4);background:rgba(0,200,83,.06)">
+    <div class="sec-title"><span class="icon">♻️</span> استرجاع الحسابات</div>
+    <div style="font-size:.8rem;color:var(--muted2);line-height:1.7;margin-bottom:.625rem">تم العثور على <strong style="color:var(--green)">${bakCount}</strong> حساباً محفوظاً على هذا الجهاز (بكلمات المرور الأصلية). اضغط لإعادتها إلى الخادم.</div>
+    <button class="btn btn-green" onclick="recoverAccounts()">♻️ استرجاع ${bakCount} حساباً إلى الخادم</button>
+  </div>`:'';
   return `<div class="login-wrap">
   <div id="lmsg" class="msg"></div>
+  ${recoverCard}
   <div class="card">
     <div class="sec-title"><span class="icon">🔑</span> دخول</div>
     <div style="margin-bottom:.625rem"><label>اسم المستخدم</label><input id="lu" placeholder="username" dir="ltr" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"/></div>
