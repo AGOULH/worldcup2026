@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // وثائق التطبيق: app/users , app/matches , app/predictions
+    match /app/{doc} {
+
+      // القراءة متاحة للجميع (الموقع عام بلا تسجيل دخول على مستوى Firebase)
+      allow read: if true;
+
+      // إنشاء الوثيقة لأول مرة متاح
+      allow create: if true;
+
+      // حذف الوثيقة بالكامل ممنوع نهائياً
+      allow delete: if false;
+
+      // التحديث: نمنع أي كتابة تمحو البيانات
+      allow update: if
+        // ── المستخدمون: يُمنع حذف أكثر من حساب واحد في الكتابة الواحدة ──
+        // (هذا يجعل محو القائمة كاملةً 29←1 مستحيلاً، ويسمح بحذف فرد واحد فقط)
+        (doc == 'users'
+          ? request.resource.data.list.size() >= resource.data.list.size() - 1
+        // ── المباريات: لا يُسمح بتقليص العدد (يبقى 104 دائماً) ──
+        : doc == 'matches'
+          ? request.resource.data.list.size() >= resource.data.list.size()
+        // ── غير ذلك (التوقعات): مسموح ──
+          : true);
+    }
+  }
+}
