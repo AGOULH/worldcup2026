@@ -1579,29 +1579,74 @@ function buildReportCanvas(mode){
 }
 
 async function exportDailyReport(mode){
-  if(typeof window.jspdf==='undefined'){showNotif('مكتبة PDF لم تُحمّل — تحقق من الإنترنت','⚠️');return;}
-  showNotif('جاري إنشاء التقرير...','📑',2500);
+  showNotif('جاري إنشاء التقرير...','📑',2000);
   const built=buildReportCanvas(mode);
   if(!built){showNotif('لا توجد نتائج محسومة بعد','⚠️');return;}
+  const {cv,W,H}=built;
+  const imgData=cv.toDataURL('image/jpeg',0.93);
+  const fname=mode==='today'?'تقرير-اليوم':'التقرير-الشامل';
+
+  // ── نافذة المعاينة ────────────────────────────────
+  const overlay=document.createElement('div');
+  overlay.id='report-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(3,7,15,.93);z-index:9000;display:flex;flex-direction:column;overflow:hidden';
+  overlay.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(201,168,76,.2);flex-shrink:0">
+      <span style="font-size:.85rem;font-weight:700;color:var(--gold)">📋 ${fname}</span>
+      <button onclick="document.getElementById('report-overlay').remove()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:.2rem .5rem">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden;display:flex;justify-content:center;padding:.75rem">
+      <img id="report-img" src="${imgData}" style="width:100%;max-width:600px;border-radius:10px;display:block" loading="lazy"/>
+    </div>
+    <div style="padding:.75rem;background:rgba(0,0,0,.5);border-top:1px solid rgba(201,168,76,.2);display:flex;gap:.5rem;flex-shrink:0">
+      <button id="report-share-btn" class="btn btn-green" style="flex:1" onclick="_reportShare('${fname}')">📤 مشاركة (واتساب)</button>
+      <button class="btn btn-blue" style="flex:1" onclick="_reportDownloadImg('${fname}')">⬇️ تنزيل صورة</button>
+      ${typeof window.jspdf!=='undefined'?`<button class="btn btn-outline" style="flex:1" onclick="_reportDownloadPdf('${fname}')">📄 PDF</button>`:''}
+    </div>`;
+  document.body.appendChild(overlay);
+  // تخزين الصورة والـ canvas للأزرار
+  window._reportImgData=imgData;
+  window._reportCanvas=cv;
+  window._reportW=W;window._reportH=H;
+}
+
+async function _reportShare(fname){
+  const imgData=window._reportImgData;
+  if(!imgData)return;
   try{
-    const {cv,W,H}=built;
-    const imgData=cv.toDataURL('image/jpeg',0.92);
-    const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF({orientation:'portrait',unit:'px',format:[W,H],compress:true});
-    pdf.addImage(imgData,'JPEG',0,0,W,H);
-    const fname=mode==='today'?'تقرير-اليوم.pdf':'التقرير-الشامل.pdf';
-    const blob=pdf.output('blob');
-    const file=new File([blob],fname,{type:'application/pdf'});
+    const blob=await(await fetch(imgData)).blob();
+    const file=new File([blob],fname+'.jpg',{type:'image/jpeg'});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
-      try{ await navigator.share({files:[file],title:'تقرير مسابقة كأس العالم 2026'}); return; }catch(e){}
+      await navigator.share({files:[file],title:'تقرير مسابقة كأس العالم 2026'});return;
+    }
+  }catch(_){}
+  // احتياطي: تنزيل الصورة
+  _reportDownloadImg(fname);
+  showNotif('جهازك لا يدعم المشاركة المباشرة — تم تنزيل الصورة','ℹ️',3500);
+}
+function _reportDownloadImg(fname){
+  const a=document.createElement('a');
+  a.href=window._reportImgData;a.download=fname+'.jpg';
+  document.body.appendChild(a);a.click();a.remove();
+  showNotif('✓ تم تنزيل الصورة','🖼️',3000);
+}
+async function _reportDownloadPdf(fname){
+  if(typeof window.jspdf==='undefined'){showNotif('مكتبة PDF لم تُحمّل','⚠️');return;}
+  try{
+    const {jsPDF}=window.jspdf;
+    const W=window._reportW,H=window._reportH;
+    const pdf=new jsPDF({orientation:'portrait',unit:'px',format:[W,H],compress:true});
+    pdf.addImage(window._reportImgData,'JPEG',0,0,W,H);
+    const blob=pdf.output('blob');
+    const file=new File([blob],fname+'.pdf',{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:'تقرير مسابقة كأس العالم 2026'});return;}catch(_){}
     }
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=fname;
+    const a=document.createElement('a');a.href=url;a.download=fname+'.pdf';
     document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-    showNotif('✓ تم تنزيل التقرير — شاركه واتساب','📑',4000);
-  }catch(e){
-    showNotif('خطأ في إنشاء التقرير: '+e.message,'⚠️');
-  }
+    showNotif('✓ تم تنزيل PDF','📄',3000);
+  }catch(e){showNotif('خطأ: '+e.message,'⚠️');}
 }
 
 async function exportLeaderboardPDF(){
