@@ -426,8 +426,10 @@ async function initData(){
     CACHE.matches = mSnap.exists ? (mSnap.data().list||buildMatches()) : buildMatches();
     CACHE.predictions = pSnap.exists ? (pSnap.data().data||{}) : {};
     mergeIntoUserBak(CACHE.users); // حدّث النسخة الاحتياطية بأي مستخدمين جدد من الخادم
-    // seed defaults if first run
-    ensureAdmin(); ensureMatches();
+    // seed defaults if first run (الكتابة على الخادم تتم بمعاملة آمنة لا تمحو أحداً)
+    ensureAdmin();
+    if(uSnap.exists) ensureAdminOnServer(); // فقط إن كانت الوثيقة موجودة فعلاً
+    ensureMatches();
     render();
     // live listeners — update cache + refresh current view when data changes elsewhere
     fdb.collection('app').doc('users').onSnapshot(s=>{if(s.exists){CACHE.users=s.data().list||[];softRefresh();}});
@@ -2264,13 +2266,27 @@ function setMF(f){matchFilter=f;showPage('matches');}
 // ═══════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════
+// يضمن وجود المشرف في الذاكرة المحلية فقط — لا يكتب على الخادم إطلاقاً
+// (الكتابة الكاملة على الخادم كانت سبب محو المستخدمين عند فشل القراءة).
 function ensureAdmin(){
   let users=DB.users();
   if(!users.find(u=>u.username==='admin')){
-    users.push({username:'admin',password:'admin2026',name:'حسن العاقول',isAdmin:true});
-    CACHE.users=users; // وحّد المرجع حتى تراه القراءات اللاحقة فوراً
-    DB.saveUsers(users);
+    users=[...users,{username:'admin',password:'admin2026',name:'حسن العاقول',isAdmin:true}];
+    CACHE.users=users;
+    DB.set('users',users); // محلي فقط، بدون مزامنة الخادم
   }
+}
+// إضافة المشرف إلى الخادم بأمان عبر معاملة: تقرأ القائمة الحالية وتضيف فقط،
+// فلا تمحو أي مستخدم مهما حدث. تُستدعى فقط بعد نجاح القراءة من الخادم.
+async function ensureAdminOnServer(){
+  if(!FB_OK) return;
+  try{
+    await mutateUsers(list=>{
+      if(list.find(u=>u&&u.username==='admin')) return false; // موجود، لا تكتب
+      list.push({username:'admin',password:'admin2026',name:'حسن العاقول',isAdmin:true});
+      return true;
+    });
+  }catch(e){console.warn('ensureAdminOnServer',e);}
 }
 async function doLogin(){
   const un=cleanInput(document.getElementById('lu')?.value).toLowerCase();
