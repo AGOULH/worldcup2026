@@ -606,12 +606,65 @@ function fmtTime(ts){return new Date(ts).toLocaleTimeString('ar-SA',{hour:'2-dig
 function fmtDate(ts){return new Date(ts).toLocaleDateString('ar-SA',{weekday:'short',month:'short',day:'numeric',timeZone:'Asia/Riyadh'})}
 function teamName(full){return full.split(' ').slice(1).join(' ')||full}
 function teamFlag(full){return full.split(' ')[0]}
+// مباراة إقصائية (كل ما هو ليس دور مجموعات)
+function isKO(m){return m.stage!=='دور المجموعات';}
+const METH_SHORT={reg:'أصلي',aet:'إضافي',pen:'ركلات'};
+function hasPred(p){return p&&(p.r1!=null||p.win!=null);}
+function actualWinner(m){
+  if(m.method==='pen') return m.win||0;
+  const a=Number(m.r1),b=Number(m.r2);
+  return a>b?1:b>a?2:0;
+}
+function predWinner(p){
+  if(p.method==='aet'||p.method==='pen') return p.win||0;
+  if(p.r1==null||p.r2==null) return 0;
+  const a=Number(p.r1),b=Number(p.r2);
+  if(isNaN(a)||isNaN(b)) return 0;
+  return a>b?1:b>a?2:0;
+}
+// نص مختصر لتوقع المستخدم
+function predLabel(p,m){
+  if(!hasPred(p)) return '';
+  if(isKO(m)&&(p.method==='aet'||p.method==='pen')){
+    const w=p.win===1?teamName(m.t1):p.win===2?teamName(m.t2):'؟';
+    return `فوز ${w} ${p.method==='pen'?'بالركلات':'بالإضافي'}`;
+  }
+  return (p.r1!=null&&p.r2!=null)?`${p.r1}-${p.r2}`:'';
+}
+// نص نتيجة المباراة الرسمية
+function resultLabel(m){
+  if(!m.official) return '';
+  if(isKO(m)&&m.method==='pen'){
+    const w=m.win===1?teamName(m.t1):teamName(m.t2);
+    return `فوز ${w} بالركلات`;
+  }
+  let s=`${m.r1}-${m.r2}`;
+  if(isKO(m)&&m.method==='aet') s+=' (بعد الإضافي)';
+  return s;
+}
 function calcPts(pred,m){
-  if(!m.official||m.r1===null) return null;
-  const [pr1,pr2,rr1,rr2]=[pred.r1,pred.r2,m.r1,m.r2].map(Number);
-  if(pr1===rr1&&pr2===rr2) return 5;
-  const po=pr1>pr2?1:pr1<pr2?-1:0, ro=rr1>rr2?1:rr1<rr2?-1:0;
-  return po===ro?2:0;
+  if(!m||!m.official) return null;
+  if(!isKO(m)){
+    if(m.r1===null) return null;
+    const [pr1,pr2,rr1,rr2]=[pred.r1,pred.r2,m.r1,m.r2].map(Number);
+    if(isNaN(pr1)||isNaN(pr2)) return 0;
+    if(pr1===rr1&&pr2===rr2) return 5;
+    const po=pr1>pr2?1:pr1<pr2?-1:0, ro=rr1>rr2?1:rr1<rr2?-1:0;
+    return po===ro?2:0;
+  }
+  // ── دور إقصائي: 0/2/3/5 ──
+  const aw=actualWinner(m), pw=predWinner(pred);
+  if(!pw||!aw||pw!==aw) return 0;                 // الفائز خطأ
+  const am=m.method||'reg', pm=pred.method||'reg';
+  if(pm==='reg'&&am==='reg'){                      // كلاهما وقت أصلي
+    return (Number(pred.r1)===Number(m.r1)&&Number(pred.r2)===Number(m.r2))?5:2;
+  }
+  if(pm===am){                                     // طريقة الحسم صحيحة
+    if(am==='pen') return 5;                        // فائز + ركلات
+    if(am==='aet') return 3;                        // فائز + إضافي
+    return 2;
+  }
+  return 2;                                         // الفائز صحيح لكن الطريقة مختلفة
 }
 function userStats(un){
   const preds=DB.predictions()[un]||{};
@@ -621,7 +674,7 @@ function userStats(un){
     const m=matches.find(x=>x.id===mid);
     if(!m||!m.official) continue;
     const pts=calcPts(preds[mid],m);
-    if(pts!==null){total+=pts;count++;if(pts===5)correct++;else if(pts===2)half++;else wrong++;}
+    if(pts!==null){total+=pts;count++;if(pts===5)correct++;else if(pts>0)half++;else wrong++;}
   }
   return{total,count,correct,half,wrong};
 }
@@ -693,6 +746,9 @@ function renderWelcome(){
       <div class="rule-row"><span class="rule-icon">⭐</span><div><strong style="color:var(--gold2)">5 نقاط</strong> — النتيجة الصحيحة بالضبط (مثال: توقعت 2-1 والنتيجة 2-1)</div></div>
       <div class="rule-row"><span class="rule-icon">✅</span><div><strong style="color:var(--green)">2 نقطة</strong> — الفائز أو التعادل صحيح لكن الأرقام مختلفة</div></div>
       <div class="rule-row"><span class="rule-icon">❌</span><div><strong style="color:var(--red)">0 نقطة</strong> — توقع الفائز خاطئ كلياً</div></div>
+      <div class="rule-row"><span class="rule-icon">🏟️</span><div><strong style="color:var(--gold2)">الأدوار الإقصائية</strong> — تختار طريقة الحسم: <strong>وقت أصلي</strong> (تكتب النتيجة) أو <strong>إضافي</strong> أو <strong>ركلات ترجيح</strong> (تختار الفائز):
+        <br>• فائز صحيح فقط = <strong style="color:var(--green)">2</strong> &nbsp;|&nbsp; فائز + الحسم بالإضافي = <strong style="color:var(--gold2)">3</strong>
+        <br>• فائز + الحسم بالركلات = <strong style="color:var(--gold2)">5</strong> &nbsp;|&nbsp; النتيجة الكاملة بالوقت الأصلي = <strong style="color:var(--gold2)">5</strong></div></div>
       <div class="rule-row"><span class="rule-icon">🔒</span><div>يُغلق التوقع تلقائياً لحظة انطلاق المباراة ولا يمكن التعديل</div></div>
       <div class="rule-row"><span class="rule-icon">📅</span><div>يُفتح التوقع قبل 48 ساعة فقط من موعد كل مباراة، ويُغلق نهائياً عند انطلاقها</div></div>
       <div class="rule-row"><span class="rule-icon">🌍</span><div>تشمل المسابقة جميع مراحل البطولة: 104 مباراة</div></div>
@@ -788,7 +844,7 @@ function buildMatchesPage(u){
     html+=`<div class="group-header">📅 ${dk}</div>`;
     byDate[dk].forEach(m=>{
       const locked=!canPredict(m), live=isActive(m), early=tooEarly(m), up=preds[m.id]||{};
-      const pts=m.official?calcPts(up,m):null;
+      const pts=m.official&&hasPred(up)?calcPts(up,m):null;
       const stColor=stageColor(m.stage);
       html+=`<div class="match-card${live?' live-card':''}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;gap:.5rem">
@@ -810,9 +866,11 @@ function buildMatchesPage(u){
           </div>
           <div class="vs-box">
             ${m.official
-              ?`<div style="font-size:1.1rem;font-weight:700;color:var(--gold2);line-height:1">${m.r1}-${m.r2}</div><div style="font-size:.6rem;color:var(--muted)">نهائي</div>`
-              :locked&&up.r1!==undefined
-              ?`<div style="font-size:.95rem;font-weight:700;color:var(--blue)">${up.r1}-${up.r2}</div><div style="font-size:.6rem;color:var(--muted)">توقعك</div>`
+              ?(isKO(m)&&m.method==='pen'
+                ?`<div style="font-size:1rem;font-weight:700;color:var(--gold2);line-height:1">${m.win===1?teamFlag(m.t1):teamFlag(m.t2)}✓</div><div style="font-size:.55rem;color:var(--muted)">ركلات</div>`
+                :`<div style="font-size:1.1rem;font-weight:700;color:var(--gold2);line-height:1">${m.r1}-${m.r2}</div><div style="font-size:.6rem;color:var(--muted)">${isKO(m)&&m.method==='aet'?'إضافي':'نهائي'}</div>`)
+              :locked&&hasPred(up)
+              ?`<div style="font-size:.8rem;font-weight:700;color:var(--blue);line-height:1.2">${predLabel(up,m)}</div><div style="font-size:.6rem;color:var(--muted)">توقعك</div>`
               :early?`<div style="font-size:1rem">⏳</div>`
               :locked?`<div style="font-size:1rem">🔒</div>`
               :`<div style="font-size:.7rem;color:var(--muted)">VS</div>`}
@@ -825,9 +883,10 @@ function buildMatchesPage(u){
         <div class="venue-text">📍 ${m.venue}</div>
         ${m.official
           ?`<div style="text-align:center;margin-top:.4rem">
+              <span class="badge bm" style="margin-bottom:.25rem">النتيجة: ${resultLabel(m)}</span><br>
               ${pts!==null
-                ?`<span class="badge ${pts===5?'bg':pts===2?'bgr':'bb'}">${pts===5?'⭐ نتيجة صحيحة +5':pts===2?'✅ فائز صحيح +2':'❌ 0 نقطة'}</span>
-                  ${up.r1!==undefined?`<span class="badge bm" style="margin-right:.3rem">توقعك: ${up.r1}-${up.r2}</span>`:''}`
+                ?`<span class="badge ${pts===5?'bg':pts>=2?'bgr':'bb'}">${pts===5?'⭐ توقع كامل +5':pts===3?'✅ فائز+إضافي +3':pts===2?'✅ فائز صحيح +2':'❌ 0 نقطة'}</span>
+                  ${hasPred(up)?`<span class="badge bm" style="margin-right:.3rem">توقعك: ${predLabel(up,m)}</span>`:''}`
                 :`<span class="badge bm">لم تتوقع هذه المباراة</span>`}
             </div>`
           :early
@@ -836,9 +895,30 @@ function buildMatchesPage(u){
             </div>`
           :locked
           ?`<div style="text-align:center;margin-top:.4rem">
-              ${up.r1!==undefined
-                ?`<span class="badge bbl">✓ توقعت: ${up.r1}-${up.r2}</span>`
+              ${hasPred(up)
+                ?`<span class="badge bbl">✓ توقعت: ${predLabel(up,m)}</span>`
                 :`<span class="badge bm">🔒 التوقع مغلق — بدأت المباراة</span>`}
+            </div>`
+          :isKO(m)
+          ?`<div style="margin-top:.625rem">
+              <select id="meth-${m.id}" onchange="koMethodChange('${m.id}')" style="margin-bottom:.5rem;font-size:.78rem">
+                <option value="reg" ${(up.method||'reg')==='reg'?'selected':''}>⏱️ يُحسم في الوقت الأصلي (توقّع النتيجة)</option>
+                <option value="aet" ${up.method==='aet'?'selected':''}>⏳ يُحسم في الوقت الإضافي (اختر الفائز)</option>
+                <option value="pen" ${up.method==='pen'?'selected':''}>🥅 يُحسم بركلات الترجيح (اختر الفائز)</option>
+              </select>
+              <div id="scorerow-${m.id}" class="score-inputs" style="display:${(up.method||'reg')==='reg'?'grid':'none'}">
+                <input type="number" class="score-input" id="p1-${m.id}" min="0" max="20" value="${up.method&&up.method!=='reg'?'':(up.r1??'')}" placeholder="0"/>
+                <div style="text-align:center;color:var(--muted);font-weight:700;font-size:1rem">-</div>
+                <input type="number" class="score-input" id="p2-${m.id}" min="0" max="20" value="${up.method&&up.method!=='reg'?'':(up.r2??'')}" placeholder="0"/>
+              </div>
+              <div id="winrow-${m.id}" style="display:${up.method==='aet'||up.method==='pen'?'block':'none'}">
+                <select id="pw-${m.id}" style="font-size:.82rem">
+                  <option value="0" ${!up.win?'selected':''}>— اختر الفريق الفائز —</option>
+                  <option value="1" ${up.win===1?'selected':''}>${teamName(m.t1)}</option>
+                  <option value="2" ${up.win===2?'selected':''}>${teamName(m.t2)}</option>
+                </select>
+              </div>
+              <button class="btn btn-outline btn-sm" style="margin-top:.5rem;width:100%" onclick="savePred('${m.id}')">💾 حفظ هذا التوقع</button>
             </div>`
           :`<div style="margin-top:.625rem">
               <div class="score-inputs">
@@ -937,12 +1017,12 @@ function buildMyResults(u){
       <div style="flex:1;min-width:0">
         <div style="font-size:.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${teamFlag(m.t1)} ${teamName(m.t1)} vs ${teamFlag(m.t2)} ${teamName(m.t2)}</div>
         <div style="font-size:.68rem;color:var(--muted);margin-top:.15rem">
-          النتيجة: <strong style="color:var(--gold2)">${m.r1}-${m.r2}</strong>
-          ${up?` | توقعك: <strong style="color:var(--muted2)">${up.r1}-${up.r2}</strong>`:''}
+          النتيجة: <strong style="color:var(--gold2)">${resultLabel(m)}</strong>
+          ${hasPred(up)?` | توقعك: <strong style="color:var(--muted2)">${predLabel(up,m)}</strong>`:''}
         </div>
       </div>
       ${pts!==null
-        ?`<span class="badge ${pts===5?'bg':pts===2?'bgr':'bb'}">${pts}نق</span>`
+        ?`<span class="badge ${pts===5?'bg':pts>=2?'bgr':'bb'}">${pts}نق</span>`
         :`<span class="badge bm">—</span>`}
     </div>`;
   });
@@ -1003,11 +1083,23 @@ function buildAdmin(){
         <span class="badge ${stageColor(m.stage)}">${stageIcon(m.stage)} ${m.stage}</span>
       </div>
       <div style="font-size:.66rem;color:var(--muted);margin-bottom:.5rem">📍 ${m.venue} | 📅 ${fmtDate(m.ts)}</div>
-      <div class="score-inputs">
+      ${isKO(m)?`<select id="arm-${m.id}" onchange="koResMethodChange('${m.id}')" style="margin-bottom:.5rem;font-size:.78rem">
+        <option value="reg">⏱️ حُسمت في الوقت الأصلي</option>
+        <option value="aet">⏳ حُسمت في الوقت الإضافي</option>
+        <option value="pen">🥅 حُسمت بركلات الترجيح</option>
+      </select>`:''}
+      <div id="arscore-${m.id}" class="score-inputs">
         <input type="number" class="score-input" id="ar1-${m.id}" min="0" max="20" placeholder="0"/>
         <div style="text-align:center;color:var(--muted);font-weight:700">-</div>
         <input type="number" class="score-input" id="ar2-${m.id}" min="0" max="20" placeholder="0"/>
       </div>
+      ${isKO(m)?`<div id="arwin-${m.id}" style="display:none">
+        <select id="arw-${m.id}" style="font-size:.82rem">
+          <option value="0">— اختر الفريق الفائز بالركلات —</option>
+          <option value="1">${teamName(m.t1)}</option>
+          <option value="2">${teamName(m.t2)}</option>
+        </select>
+      </div>`:''}
       <button class="btn btn-green btn-sm" style="margin-top:.5rem;width:100%" onclick="saveResult('${m.id}')">✔ تأكيد وتوزيع النقاط</button>
     </div>`;
   });
@@ -1017,7 +1109,7 @@ function buildAdmin(){
     <div class="scroll-area" style="max-height:22vh">`;
     done.forEach(m=>{
       html+=`<div class="card2" style="display:flex;align-items:center;gap:.5rem;padding:.55rem .75rem;margin-bottom:.35rem">
-        <div style="flex:1;font-size:.76rem">${teamFlag(m.t1)} ${teamName(m.t1)} <strong style="color:var(--gold)">${m.r1}-${m.r2}</strong> ${teamName(m.t2)} ${teamFlag(m.t2)}</div>
+        <div style="flex:1;font-size:.76rem">${teamFlag(m.t1)} ${teamName(m.t1)} <strong style="color:var(--gold)">${resultLabel(m)}</strong> ${teamName(m.t2)} ${teamFlag(m.t2)}</div>
         <button class="btn btn-red btn-sm" onclick="delResult('${m.id}')">حذف</button>
       </div>`;
     });
@@ -1525,7 +1617,9 @@ function buildReportCanvas(mode){
       // أسماء + نتيجة
       x.textAlign='center';
       x.fillStyle='#d8e8f8';x.font='bold 26px Tajawal, Arial';
-      x.fillText(`${teamName(m.t1)}  ${m.r1} - ${m.r2}  ${teamName(m.t2)}`,W/2,y+38);
+      x.fillText(isKO(m)&&m.method==='pen'
+        ?`${teamName(m.t1)}  🥅 ركلات  ${teamName(m.t2)}`
+        :`${teamName(m.t1)}  ${m.r1} - ${m.r2}${isKO(m)&&m.method==='aet'?' (إضافي)':''}  ${teamName(m.t2)}`,W/2,y+38);
       // من أصاب النتيجة
       const preds=DB.predictions(), users=DB.users().filter(u=>!u.isAdmin);
       let exact=0,winner=0;
@@ -1982,12 +2076,11 @@ function savePred(mid){
     const msg=m&&tooEarly(m)?'⏳ يُفتح التوقع قبل 48 ساعة من موعد المباراة':'🔒 التوقع مغلق بعد بداية المباراة';
     showInlineMsg('pmsg',msg,'err');return;
   }
-  const r1=document.getElementById('p1-'+mid)?.value;
-  const r2=document.getElementById('p2-'+mid)?.value;
-  if(r1===''||r2===''){showInlineMsg('pmsg','أدخل النتيجة كاملة','err');return;}
+  const pred=readPredInput(mid,m);
+  if(pred.err){showInlineMsg('pmsg',pred.err,'err');return;}
   const preds=DB.predictions();
   if(!preds[u.username])preds[u.username]={};
-  preds[u.username][mid]={r1:parseInt(r1),r2:parseInt(r2),savedAt:Date.now()};
+  preds[u.username][mid]={...pred.value,savedAt:Date.now()};
   DB.savePredictions(preds);
   // تغذية بصرية على البطاقة نفسها دون إعادة تحميل الصفحة
   const btn=document.querySelector(`button[onclick="savePred('${mid}')"]`);
@@ -2000,6 +2093,35 @@ function savePred(mid){
   }
 }
 
+// تبديل عرض (نتيجة / فائز) حسب طريقة الحسم المختارة
+function koMethodChange(mid){
+  const meth=document.getElementById('meth-'+mid)?.value;
+  const sr=document.getElementById('scorerow-'+mid);
+  const wr=document.getElementById('winrow-'+mid);
+  if(!sr||!wr) return;
+  if(meth==='reg'){sr.style.display='grid';wr.style.display='none';}
+  else{sr.style.display='none';wr.style.display='block';}
+}
+// قراءة مدخلات توقّع مباراة (تعيد {value} أو {err})
+function readPredInput(mid,m){
+  if(isKO(m)){
+    const meth=document.getElementById('meth-'+mid)?.value||'reg';
+    if(meth==='reg'){
+      const r1=document.getElementById('p1-'+mid)?.value;
+      const r2=document.getElementById('p2-'+mid)?.value;
+      if(r1===''||r2===''||r1==null||r2==null) return{err:'أدخل النتيجة كاملة'};
+      return{value:{method:'reg',r1:parseInt(r1),r2:parseInt(r2)}};
+    }
+    const win=parseInt(document.getElementById('pw-'+mid)?.value||'0');
+    if(!win) return{err:'اختر الفريق الفائز'};
+    return{value:{method:meth,win}};
+  }
+  const r1=document.getElementById('p1-'+mid)?.value;
+  const r2=document.getElementById('p2-'+mid)?.value;
+  if(r1===''||r2===''||r1==null||r2==null) return{err:'أدخل النتيجة كاملة'};
+  return{value:{r1:parseInt(r1),r2:parseInt(r2)}};
+}
+
 // حفظ كل التوقعات المُدخلة دفعة واحدة
 function saveAllPreds(){
   const u=DB.currentUser();
@@ -2009,12 +2131,10 @@ function saveAllPreds(){
   let saved=0, skipped=0;
   matches.forEach(m=>{
     if(!canPredict(m)) return; // المغلقة تُتجاهل
-    const e1=document.getElementById('p1-'+m.id);
-    const e2=document.getElementById('p2-'+m.id);
-    if(!e1||!e2) return;
-    const r1=e1.value, r2=e2.value;
-    if(r1===''||r2==='') return; // الفارغة تُتجاهل
-    preds[u.username][m.id]={r1:parseInt(r1),r2:parseInt(r2),savedAt:Date.now()};
+    if(!document.getElementById('p1-'+m.id)&&!document.getElementById('pw-'+m.id)) return;
+    const pred=readPredInput(m.id,m);
+    if(pred.err) return; // غير المكتملة تُتجاهل
+    preds[u.username][m.id]={...pred.value,savedAt:Date.now()};
     saved++;
   });
   if(!saved){showInlineMsg('pmsg','لم تُدخل أي توقعات جديدة لحفظها','err');return;}
@@ -2382,13 +2502,32 @@ function importExcel(){
   reader.readAsBinaryString(file);
 }
 
+function koResMethodChange(mid){
+  const meth=document.getElementById('arm-'+mid)?.value;
+  const sr=document.getElementById('arscore-'+mid);
+  const wr=document.getElementById('arwin-'+mid);
+  if(!sr||!wr) return;
+  if(meth==='pen'){sr.style.display='none';wr.style.display='block';}
+  else{sr.style.display='grid';wr.style.display='none';}
+}
 function saveResult(mid){
-  const r1=document.getElementById('ar1-'+mid)?.value;
-  const r2=document.getElementById('ar2-'+mid)?.value;
-  if(r1===''||r2===''){showInlineMsg('amsg','أدخل النتيجة','err');return;}
   const matches=DB.matches(), m=matches.find(x=>x.id===mid);
   if(!m) return;
-  m.r1=parseInt(r1);m.r2=parseInt(r2);m.official=true;
+  const meth=isKO(m)?(document.getElementById('arm-'+mid)?.value||'reg'):'reg';
+  if(isKO(m)&&meth==='pen'){
+    const win=parseInt(document.getElementById('arw-'+mid)?.value||'0');
+    if(!win){showInlineMsg('amsg','اختر الفريق الفائز بالركلات','err');return;}
+    m.r1=0;m.r2=0;m.method='pen';m.win=win;m.official=true;
+  }else{
+    const r1=document.getElementById('ar1-'+mid)?.value;
+    const r2=document.getElementById('ar2-'+mid)?.value;
+    if(r1===''||r2===''){showInlineMsg('amsg','أدخل النتيجة','err');return;}
+    if(isKO(m)&&meth==='reg'&&parseInt(r1)===parseInt(r2)){
+      showInlineMsg('amsg','في الأدوار الإقصائية لا يصحّ التعادل بالوقت الأصلي — اختر الإضافي أو الركلات','err');return;
+    }
+    m.r1=parseInt(r1);m.r2=parseInt(r2);m.method=meth;
+    m.win=m.r1>m.r2?1:m.r2>m.r1?2:0;m.official=true;
+  }
   DB.saveMatches(matches);
   showNotif('✓ تم تسجيل النتيجة وتوزيع النقاط تلقائياً 🎉','🏆',4000);
   setTimeout(()=>showPage('admin'),1200);
@@ -2397,7 +2536,7 @@ function delResult(mid){
   if(!confirm('هل تريد حذف هذه النتيجة؟')) return;
   const matches=DB.matches(), m=matches.find(x=>x.id===mid);
   if(!m) return;
-  m.r1=null;m.r2=null;m.official=false;
+  m.r1=null;m.r2=null;m.official=false;delete m.method;delete m.win;
   DB.saveMatches(matches);
   showNotif('تم حذف النتيجة','⚠️');
   showPage('admin');
