@@ -1175,6 +1175,10 @@ function buildAdmin(){
     html+=`</div>`;
   }
   html+=`<div class="sec-title" style="margin-top:1rem"><span class="icon">👥</span> المشاركون (${users.length})</div>`;
+  html+=`<div style="display:flex;gap:.5rem;margin-bottom:.6rem">
+    <button class="btn btn-blue btn-sm" style="flex:1;width:auto" onclick="exportUsersBackup('xlsx')">💾 تصدير المستخدمين (Excel)</button>
+    <button class="btn btn-outline btn-sm" style="flex:1;width:auto" onclick="exportUsersBackup('json')">🗄️ نسخة JSON</button>
+  </div>`;
   if(!users.length) html+=`<div class="empty" style="padding:.75rem">لا يوجد مشاركون بعد</div>`;
   users.forEach(u=>{
     const st=userStats(u.username);
@@ -2841,6 +2845,32 @@ function generatePassword(){
   let pw='';
   for(let i=0;i<8;i++) pw+=chars[Math.floor(Math.random()*chars.length)];
   return pw;
+}
+// تصدير كل الحسابات (نسخة احتياطية) بصيغة Excel أو JSON — للمدير فقط
+async function exportUsersBackup(fmt){
+  const admin=DB.currentUser();
+  if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
+  showNotif('⏳ جاري القراءة من السيرفر...','💾',2000);
+  const users=await fetchUsersFresh(); // أحدث نسخة من السيرفر
+  if(!users.length){showNotif('لا يوجد مستخدمون','⚠️');return;}
+  const stamp=new Date().toISOString().slice(0,10);
+  if(fmt==='json'){
+    const blob=new Blob([JSON.stringify(users,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`worldcup2026-users-${stamp}.json`;
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    showNotif(`✓ تم تصدير ${users.length} حساباً (JSON)`,'🗄️',3000);
+    return;
+  }
+  // Excel
+  if(typeof XLSX==='undefined'){showNotif('مكتبة Excel لم تُحمّل — تحقق من الإنترنت','⚠️');return;}
+  const rows=[['username','name','password','isAdmin']];
+  users.forEach(u=>rows.push([u.username||'',u.name||'',u.password||'',u.isAdmin?'نعم':'لا']));
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'المستخدمون');
+  XLSX.writeFile(wb,`worldcup2026-users-${stamp}.xlsx`);
+  showNotif(`✓ تم تصدير ${users.length} حساباً (Excel)`,'💾',3000);
 }
 async function showUserPassword(username){
   const admin=DB.currentUser();
