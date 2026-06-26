@@ -26,5 +26,10 @@ service cloud.firestore {
         // ── غير ذلك (التوقعات): مسموح ──
           : true);
     }
+
+    // مجموعة قديمة (يُبقى عليها كما كانت حتى لا يتعطّل أي شيء)
+    match /app2/{doc} {
+      allow read, write: if true;
+    }
   }
 }
