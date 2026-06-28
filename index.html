@@ -316,7 +316,7 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
   </div>
   <h1>WORLD CUP 2026</h1>
   <p class="hero-sub">مسابقة توقع نتائج كأس العالم • أمريكا الشمالية</p>
-  <p class="hero-credit">إعداد: حسن العاقول <span style="opacity:.5;font-size:.6rem">v3.1</span></p>
+  <p class="hero-credit">إعداد: حسن العاقول <span style="opacity:.5;font-size:.6rem">v3.2</span></p>
   <div class="hero-stats" id="hero-stats" style="display:none">
     <div class="hero-stat"><div class="hero-stat-n" id="hs-players">0</div><div class="hero-stat-l">مشارك</div></div>
     <div class="hero-stat"><div class="hero-stat-n" id="hs-matches">104</div><div class="hero-stat-l">مباراة</div></div>
@@ -713,6 +713,127 @@ function leaderboard(){
     .map(u=>({...u,...userStats(u.username)}))
     .sort((a,b)=>b.total-a.total||(b.correct-a.correct)||(b.half-a.half));
 }
+// ═══════════════════════════════════════
+// حل أسماء فرق الأدوار الإقصائية من النتائج الرسمية
+// ═══════════════════════════════════════
+const AR_LETTER_TO_LATIN={'أ':'A','ب':'B','ج':'C','د':'D','هـ':'E','و':'F','ز':'G','ح':'H','ط':'I','ي':'J','ك':'K','ل':'L'};
+// رقم المباراة العالمي من المعرّف (آخر أرقام): r32_73→73 , qf97→97 , f104→104
+function koMatchNum(m){const x=String(m.id).match(/(\d+)$/);return x?parseInt(x[1]):0;}
+// هل النص ما زال عنصراً نائباً (لم يُحل بعد)؟
+function isKOPlaceholder(t){
+  return /^(أول |ثاني |فائز م|خاسر م|أفضل ثالث)/.test(String(t||''));
+}
+// العناصر النائبة الأصلية لكل مباراة إقصائية (من تعريف المباريات الثابت)
+function koOriginalSlots(){
+  const map={};
+  buildMatches().forEach(m=>{ if(isKO(m)) map[m.id]={p1:m.t1,p2:m.t2}; });
+  return map;
+}
+// ترتيب المجموعات من النتائج الرسمية لدور المجموعات فقط
+function groupStandings(){
+  const all=DB.matches().filter(m=>!isKO(m));
+  const tbl={};
+  all.forEach(m=>{
+    [m.t1,m.t2].forEach(t=>{ if(!tbl[t]) tbl[t]={team:t,g:m.g,GF:0,GA:0,Pts:0}; });
+  });
+  // اكتمال كل مجموعة (كل مبارياتها رسمية)
+  const groupTotal={}, groupDone={};
+  all.forEach(m=>{ groupTotal[m.g]=(groupTotal[m.g]||0)+1; if(m.official&&m.r1!=null) groupDone[m.g]=(groupDone[m.g]||0)+1; });
+  all.filter(m=>m.official&&m.r1!=null).forEach(m=>{
+    const a=tbl[m.t1],b=tbl[m.t2]; if(!a||!b) return;
+    const r1=Number(m.r1),r2=Number(m.r2);
+    a.GF+=r1;a.GA+=r2;b.GF+=r2;b.GA+=r1;
+    if(r1>r2) a.Pts+=3; else if(r2>r1) b.Pts+=3; else {a.Pts+=1;b.Pts+=1;}
+  });
+  const byGroup={};
+  Object.values(tbl).forEach(r=>{ r.GD=r.GF-r.GA; (byGroup[r.g]=byGroup[r.g]||[]).push(r); });
+  Object.keys(byGroup).forEach(g=>{
+    byGroup[g].sort((x,y)=> y.Pts-x.Pts || y.GD-x.GD || y.GF-x.GF || String(x.team).localeCompare(String(y.team)));
+    byGroup[g].complete = (groupDone[g]||0)===groupTotal[g];
+  });
+  return byGroup;
+}
+// حل عنصر نائب واحد إلى اسم فريق حقيقي (أو null إن تعذّر / يدوي)
+function resolveKOSlot(ph,stand,byNum){
+  ph=String(ph||'').trim();
+  // متصدر/وصيف مجموعة
+  let mt=ph.match(/^(أول|ثاني)\s+(.+)$/);
+  if(mt){
+    const idx=mt[1]==='أول'?0:1;
+    const g=AR_LETTER_TO_LATIN[mt[2].trim()];
+    const arr=g&&stand[g];
+    if(arr&&arr.complete&&arr[idx]) return arr[idx].team;
+    return null;
+  }
+  // فائز/خاسر مباراة رقمية
+  mt=ph.match(/^(فائز|خاسر)\s*م\s*(\d+)$/);
+  if(mt){
+    const want=mt[1]; const num=parseInt(mt[2]);
+    const m=byNum[num];
+    if(!m||!m.official) return null;
+    if(isKOPlaceholder(m.t1)||isKOPlaceholder(m.t2)) return null; // فرقه لم تُحل بعد
+    const w=actualWinner(m);
+    if(!w) return null; // تعادل بلا حسم
+    const winner=w===1?m.t1:m.t2, loser=w===1?m.t2:m.t1;
+    return want==='فائز'?winner:loser;
+  }
+  return null; // أفضل ثالث وغيره → يدوي
+}
+// ملء أسماء فرق الأدوار الإقصائية تلقائياً من النتائج الرسمية (للمدير)
+function autoFillKOTeams(silent){
+  const admin=DB.currentUser();
+  if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return 0;}
+  const slots=koOriginalSlots();
+  const matches=DB.matches();
+  const stand=groupStandings();
+  const byNum={}; matches.forEach(m=>{ if(isKO(m)) byNum[koMatchNum(m)]=m; });
+  let changed=0;
+  // عدة تمريرات لحل المعتمد على نتائج أدوار سابقة (فائز مX)
+  for(let pass=0;pass<6;pass++){
+    let passChanged=0;
+    matches.forEach(m=>{
+      if(!isKO(m)) return;
+      const s=slots[m.id]; if(!s) return;
+      [['1','p1'],['2','p2']].forEach(([side,pk])=>{
+        const r=resolveKOSlot(s[pk],stand,byNum);
+        if(r&&m['t'+side]!==r){ m['t'+side]=r; changed++; passChanged++; }
+      });
+    });
+    if(!passChanged) break;
+  }
+  if(changed){ DB.saveMatches(matches); }
+  if(!silent) showNotif(changed?`✓ تم تحديث ${changed} اسم فريق في الأدوار الإقصائية`:'لا جديد — تحتاج نتائج رسمية أكثر','🏟️',3500);
+  return changed;
+}
+// إعادة الأسماء النائبة الأصلية (تراجع)
+function resetKOTeams(){
+  const admin=DB.currentUser();
+  if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
+  if(!confirm('إرجاع كل أسماء فرق الأدوار الإقصائية إلى الحالة النائبة الأصلية (أول أ، ثاني ب...)؟')) return;
+  const slots=koOriginalSlots();
+  const matches=DB.matches();
+  matches.forEach(m=>{ const s=slots[m.id]; if(s){m.t1=s.p1;m.t2=s.p2;} });
+  DB.saveMatches(matches);
+  showNotif('✓ تم إرجاع الأسماء النائبة','↩️',2500);
+  showPage('admin');
+}
+// حفظ تعديل يدوي لاسم فريق في خانة إقصائية
+function saveKOTeam(mid,side){
+  const admin=DB.currentUser();
+  if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
+  const inp=document.getElementById(`ko-${mid}-${side}`);
+  if(!inp) return;
+  const val=cleanInput(inp.value);
+  if(!val){showNotif('الاسم فارغ','⚠️');return;}
+  const matches=DB.matches();
+  const m=matches.find(x=>x.id===mid);
+  if(!m) return;
+  m['t'+side]=val;
+  DB.saveMatches(matches);
+  showNotif('✓ تم حفظ الاسم','✏️',2000);
+  showPage('admin');
+}
+
 function updateHeroStats(){
   const lb=leaderboard();
   document.getElementById('hs-players').textContent=lb.length;
@@ -1089,6 +1210,30 @@ function buildMyResults(u){
 }
 
 // ── ADMIN PAGE ────────────────────────────────────────────────
+// محرّر يدوي لأسماء فرق الأدوار الإقصائية
+function buildKOEditor(){
+  const slots=koOriginalSlots();
+  const ko=DB.matches().filter(isKO);
+  if(!ko.length) return '';
+  let h='';
+  ko.forEach(m=>{
+    const s=slots[m.id]||{p1:'',p2:''};
+    const num=koMatchNum(m);
+    h+=`<div style="background:rgba(0,0,0,.25);border:1px solid var(--border2);border-radius:var(--r2);padding:.5rem .6rem;margin-bottom:.5rem">
+      <div style="font-size:.66rem;color:var(--muted);margin-bottom:.35rem">م${num} • ${m.stage}</div>
+      <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.35rem">
+        <input id="ko-${m.id}-1" value="${(m.t1||'').replace(/"/g,'&quot;')}" placeholder="${s.p1}" style="flex:1;font-size:.74rem;padding:.35rem .5rem"/>
+        <button class="btn btn-sm" style="width:auto;padding:.3rem .6rem" onclick="saveKOTeam('${m.id}','1')">حفظ</button>
+      </div>
+      <div style="display:flex;gap:.4rem;align-items:center">
+        <input id="ko-${m.id}-2" value="${(m.t2||'').replace(/"/g,'&quot;')}" placeholder="${s.p2}" style="flex:1;font-size:.74rem;padding:.35rem .5rem"/>
+        <button class="btn btn-sm" style="width:auto;padding:.3rem .6rem" onclick="saveKOTeam('${m.id}','2')">حفظ</button>
+      </div>
+    </div>`;
+  });
+  return h;
+}
+
 function buildAdmin(){
   const matches=DB.matches(), users=DB.users().filter(u=>!u.isAdmin);
   const pending=matches.filter(m=>!m.official&&now()>=m.ts);
@@ -1117,6 +1262,21 @@ function buildAdmin(){
     <div style="margin-top:.5rem;padding:.5rem .625rem;background:rgba(0,0,0,.25);border-radius:var(--r2);font-size:.66rem;color:var(--muted);line-height:1.6">
       ℹ️ يجلب مباشرة من TheSportsDB وopenfootball بدون خادم وسيط
     </div>
+  </div>
+
+  <div class="card glass" style="border-color:rgba(156,39,176,.35);margin-bottom:1rem">
+    <div class="sec-title" style="border-color:rgba(156,39,176,.25)"><span class="icon">🏟️</span> فرق الأدوار الإقصائية</div>
+    <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
+      يملأ أسماء فرق الأدوار الإقصائية (دور الـ32 وما بعده) <strong style="color:var(--gold)">تلقائياً من النتائج الرسمية</strong>: متصدر/وصيف كل مجموعة، والفائز/الخاسر من كل مباراة. خانات <strong style="color:var(--purple)">«أفضل ثالث»</strong> تُحدّد يدوياً بالأسفل.
+    </p>
+    <div class="two-col">
+      <button class="btn btn-sm" style="background:linear-gradient(135deg,#7b1fa2,#4a148c);color:#e1bee7" onclick="autoFillKOTeams()">🔄 ملء تلقائي من النتائج</button>
+      <button class="btn btn-outline btn-sm" onclick="resetKOTeams()">↩️ إرجاع النائبة</button>
+    </div>
+    <details style="margin-top:.75rem">
+      <summary style="cursor:pointer;font-size:.76rem;color:var(--gold2);font-weight:600">✏️ تعديل يدوي لأسماء الفرق</summary>
+      <div class="scroll-area" style="max-height:40vh;margin-top:.6rem">${buildKOEditor()}</div>
+    </details>
   </div>
 
   <div class="card glass" style="border-color:rgba(0,200,83,.3);margin-bottom:1rem">
@@ -2688,6 +2848,7 @@ function approveAutoResult(i){
   if(!m) return;
   m.r1=p.score1;m.r2=p.score2;m.official=true;
   DB.saveMatches(matches);
+  autoFillKOTeams(true);
   showNotif(`✓ اعتُمدت: ${teamName(m.t1)} ${m.r1}-${m.r2} ${teamName(m.t2)}`,'🏆');
   window._autoProposals.splice(i,1);
   setTimeout(()=>showPage('admin'),800);
@@ -2703,6 +2864,7 @@ function approveVerifiedOnly(){
     if(m){m.r1=p.score1;m.r2=p.score2;m.official=true;n++;}
   });
   DB.saveMatches(matches);
+  autoFillKOTeams(true);
   window._autoProposals=props.filter(p=>!p.verified);
   showNotif(`✓ اعتُمدت ${n} نتيجة مؤكدة وتوزّعت النقاط 🎉`,'🏆',4000);
   setTimeout(()=>showPage('admin'),1000);
@@ -2717,6 +2879,7 @@ function approveAllAutoResults(){
     if(m){m.r1=p.score1;m.r2=p.score2;m.official=true;n++;}
   });
   DB.saveMatches(matches);
+  autoFillKOTeams(true);
   window._autoProposals=[];
   showNotif(`✓ اعتُمدت ${n} نتيجة وتوزّعت النقاط 🎉`,'🏆',4000);
   setTimeout(()=>showPage('admin'),1000);
@@ -2764,6 +2927,7 @@ function importExcel(){
       });
       if(applied===0){showInlineMsg('xlsx-msg','لم يُعثر على أي نتيجة صالحة. اكتب النتائج بصيغة 2-1 في عمود Result','err');return;}
       DB.saveMatches(matches);
+      autoFillKOTeams(true);
       showInlineMsg('xlsx-msg',`✓ تم استيراد ${applied} نتيجة وتوزيع النقاط${skipped?` (${skipped} صف بدون نتيجة)`:''}`,'ok');
       const pv=document.getElementById('xlsx-preview');
       if(pv) pv.innerHTML=`<div style="margin-top:.625rem;font-size:.72rem;color:var(--muted2)"><strong style="color:var(--gold)">عيّنة من النتائج المستوردة:</strong><br>${preview.map(p=>'• '+p).join('<br>')}${applied>6?`<br>... و ${applied-6} نتيجة أخرى`:''}</div>`;
@@ -2804,6 +2968,7 @@ function saveResult(mid){
     m.win=m.r1>m.r2?1:m.r2>m.r1?2:0;m.official=true;
   }
   DB.saveMatches(matches);
+  autoFillKOTeams(true); // تحديث فرق الأدوار الإقصائية تلقائياً إن أمكن
   showNotif('✓ تم تسجيل النتيجة وتوزيع النقاط تلقائياً 🎉','🏆',4000);
   setTimeout(()=>showPage('admin'),1200);
 }
