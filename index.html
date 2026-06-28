@@ -793,6 +793,7 @@ function autoFillKOTeams(silent){
     let passChanged=0;
     matches.forEach(m=>{
       if(!isKO(m)) return;
+      if(m.lockTeams) return; // فرق مُدخلة رسمياً/يدوياً — لا تُستبدل تلقائياً
       const s=slots[m.id]; if(!s) return;
       [['1','p1'],['2','p2']].forEach(([side,pk])=>{
         const r=resolveKOSlot(s[pk],stand,byNum);
@@ -812,9 +813,53 @@ function resetKOTeams(){
   if(!confirm('إرجاع كل أسماء فرق الأدوار الإقصائية إلى الحالة النائبة الأصلية (أول أ، ثاني ب...)؟')) return;
   const slots=koOriginalSlots();
   const matches=DB.matches();
-  matches.forEach(m=>{ const s=slots[m.id]; if(s){m.t1=s.p1;m.t2=s.p2;} });
+  matches.forEach(m=>{ const s=slots[m.id]; if(s){m.t1=s.p1;m.t2=s.p2;delete m.lockTeams;} });
   DB.saveMatches(matches);
   showNotif('✓ تم إرجاع الأسماء النائبة','↩️',2500);
+  showPage('admin');
+}
+// إيجاد الاسم الكامل لفريق (علم + اسم) من مباريات المجموعات عبر كلمة مفتاحية
+function teamByKeyword(kw){
+  const found=DB.matches().filter(m=>!isKO(m)).flatMap(m=>[m.t1,m.t2])
+    .find(t=>String(t).includes(kw));
+  return found||null;
+}
+// إدخال المتأهلين الرسميين لدور الـ32 (من البطاقة الرسمية) ويقفلهم ضد الاستبدال التلقائي
+function applyOfficialR32(){
+  const admin=DB.currentUser();
+  if(!admin?.isAdmin){showNotif('هذه الميزة للمدير فقط','⚠️');return;}
+  if(!confirm('إدخال المواجهات الرسمية لدور الـ32 كما في البطاقة، وقفلها ضد التغيير التلقائي؟\n(يمكنك التراجع بزر «إرجاع النائبة»)')) return;
+  // [رقم المباراة, كلمة الفريق الأول, كلمة الفريق الثاني] — حسب البطاقة الرسمية
+  const B=[
+    [73,'أفريقيا','كندا'],
+    [74,'ألمانيا','باراغواي'],
+    [75,'هولندا','المغرب'],
+    [76,'البرازيل','اليابان'],
+    [77,'فرنسا','السويد'],
+    [78,'ديفوار','النرويج'],
+    [79,'المكسيك','الإكوادور'],
+    [80,'إنجلترا','الكونغو'],
+    [81,'المتحدة','البوسنة'],
+    [82,'بلجيكا','السنغال'],
+    [83,'البرتغال','كرواتيا'],
+    [84,'إسبانيا','النمسا'],
+    [85,'سويسرا','الجزائر'],
+    [86,'الأرجنتين','الرأس'],
+    [87,'كولومبيا','غانا'],
+    [88,'أستراليا','مصر'],
+  ];
+  const matches=DB.matches();
+  let ok=0, miss=[];
+  B.forEach(([num,k1,k2])=>{
+    const m=matches.find(x=>x.id==='r32_'+num);
+    if(!m){miss.push('م'+num);return;}
+    const t1=teamByKeyword(k1), t2=teamByKeyword(k2);
+    if(!t1||!t2){miss.push(`م${num}(${!t1?k1:k2})`);return;}
+    m.t1=t1; m.t2=t2; m.lockTeams=true; ok++;
+  });
+  DB.saveMatches(matches);
+  autoFillKOTeams(true); // حل ما بعد دور الـ32 إن وُجدت نتائج
+  showNotif(miss.length?`أُدخلت ${ok} مواجهة — تعذّر: ${miss.join('، ')}`:`✓ أُدخلت كل مواجهات دور الـ32 الرسمية (${ok}) 🏟️`, '📋', 4500);
   showPage('admin');
 }
 // حفظ تعديل يدوي لاسم فريق في خانة إقصائية
@@ -829,6 +874,7 @@ function saveKOTeam(mid,side){
   const m=matches.find(x=>x.id===mid);
   if(!m) return;
   m['t'+side]=val;
+  m.lockTeams=true; // تعديل يدوي — لا يُستبدل تلقائياً
   DB.saveMatches(matches);
   showNotif('✓ تم حفظ الاسم','✏️',2000);
   showPage('admin');
@@ -1269,6 +1315,7 @@ function buildAdmin(){
     <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
       يملأ أسماء فرق الأدوار الإقصائية (دور الـ32 وما بعده) <strong style="color:var(--gold)">تلقائياً من النتائج الرسمية</strong>: متصدر/وصيف كل مجموعة، والفائز/الخاسر من كل مباراة. خانات <strong style="color:var(--purple)">«أفضل ثالث»</strong> تُحدّد يدوياً بالأسفل.
     </p>
+    <button class="btn btn-sm" style="width:100%;margin-bottom:.5rem;background:linear-gradient(135deg,#9c27b0,#6a1b9a);color:#f3e5f5" onclick="applyOfficialR32()">📋 إدخال المتأهلين الرسميين (دور الـ32)</button>
     <div class="two-col">
       <button class="btn btn-sm" style="background:linear-gradient(135deg,#7b1fa2,#4a148c);color:#e1bee7" onclick="autoFillKOTeams()">🔄 ملء تلقائي من النتائج</button>
       <button class="btn btn-outline btn-sm" onclick="resetKOTeams()">↩️ إرجاع النائبة</button>
