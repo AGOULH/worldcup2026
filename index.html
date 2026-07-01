@@ -656,7 +656,8 @@ function predWinner(p){
 function predLabel(p,m){
   if(!hasPred(p)) return '';
   if(isKO(m)&&(p.method==='aet'||p.method==='pen')){
-    const w=p.win===1?teamName(m.t1):p.win===2?teamName(m.t2):'؟';
+    if(!p.win) return p.method==='pen'?'🎯 ركلات جزاء':'⏰ وقت إضافي';
+    const w=p.win===1?teamName(m.t1):teamName(m.t2);
     return `فوز ${w} ${p.method==='pen'?'بالركلات':'بالإضافي'}`;
   }
   return (p.r1!=null&&p.r2!=null)?`${p.r1}-${p.r2}`:'';
@@ -682,19 +683,25 @@ function calcPts(pred,m){
     const po=pr1>pr2?1:pr1<pr2?-1:0, ro=rr1>rr2?1:rr1<rr2?-1:0;
     return po===ro?2:0;
   }
-  // ── دور إقصائي: 0/2/3/5 ──
-  const aw=actualWinner(m), pw=predWinner(pred);
-  if(!pw||!aw||pw!==aw) return 0;                 // الفائز خطأ
+  // ── دور إقصائي ──
   const am=m.method||'reg', pm=pred.method||'reg';
-  if(pm==='reg'&&am==='reg'){                      // كلاهما وقت أصلي
-    return (Number(pred.r1)===Number(m.r1)&&Number(pred.r2)===Number(m.r2))?5:2;
+  if(pm!==am) return 0;                            // طريقة الحسم مختلفة → 0
+  if(pm==='reg'){                                  // وقت أصلي
+    const [pr1,pr2,rr1,rr2]=[pred.r1,pred.r2,m.r1,m.r2].map(Number);
+    if(isNaN(pr1)||isNaN(pr2)) return 0;
+    if(pr1===rr1&&pr2===rr2) return 5;
+    const po=pr1>pr2?1:pr1<pr2?-1:0, ro=rr1>rr2?1:rr1<rr2?-1:0;
+    return po===ro?2:0;
   }
-  if(pm===am){                                     // طريقة الحسم صحيحة
-    if(am==='pen') return 5;                        // فائز + ركلات
-    if(am==='aet') return 3;                        // فائز + إضافي
-    return 2;
+  if(pm==='aet'){                                  // وقت إضافي: بدون فائز→3، فائز صحيح→5
+    const aw=actualWinner(m), pw=predWinner(pred);
+    return (pw&&pw===aw)?5:3;
   }
-  return 2;                                         // الفائز صحيح لكن الطريقة مختلفة
+  if(pm==='pen'){                                  // ركلات جزاء: بدون فائز→4، فائز صحيح→5
+    const aw=actualWinner(m), pw=predWinner(pred);
+    return (pw&&pw===aw)?5:4;
+  }
+  return 0;
 }
 function userStats(un){
   const preds=DB.predictions()[un]||{};
@@ -940,12 +947,10 @@ function renderWelcome(){
       <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">FIFA World Cup 2026</div>
     </div>
     <div style="background:rgba(0,0,0,.3);border-radius:10px;padding:.875rem;margin-bottom:.875rem">
-      <div class="rule-row"><span class="rule-icon">⭐</span><div><strong style="color:var(--gold2)">5 نقاط</strong> — النتيجة الصحيحة بالضبط (مثال: توقعت 2-1 والنتيجة 2-1)</div></div>
-      <div class="rule-row"><span class="rule-icon">✅</span><div><strong style="color:var(--green)">2 نقطة</strong> — الفائز أو التعادل صحيح لكن الأرقام مختلفة</div></div>
-      <div class="rule-row"><span class="rule-icon">❌</span><div><strong style="color:var(--red)">0 نقطة</strong> — توقع الفائز خاطئ كلياً</div></div>
-      <div class="rule-row"><span class="rule-icon">🏟️</span><div><strong style="color:var(--gold2)">الأدوار الإقصائية</strong> — تختار طريقة الحسم: <strong>وقت أصلي</strong> (تكتب النتيجة) أو <strong>إضافي</strong> أو <strong>ركلات ترجيح</strong> (تختار الفائز):
-        <br>• فائز صحيح فقط = <strong style="color:var(--green)">2</strong> &nbsp;|&nbsp; فائز + الحسم بالإضافي = <strong style="color:var(--gold2)">3</strong>
-        <br>• فائز + الحسم بالركلات = <strong style="color:var(--gold2)">5</strong> &nbsp;|&nbsp; النتيجة الكاملة بالوقت الأصلي = <strong style="color:var(--gold2)">5</strong></div></div>
+      <div class="rule-row"><span class="rule-icon">⏱️</span><div><strong style="color:var(--gold2)">الوقت الأصلي:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> للنتيجة الصحيحة بالضبط | <strong style="color:var(--green)">2 نقطة</strong> للفائز الصحيح فقط</div></div>
+      <div class="rule-row"><span class="rule-icon">⏰</span><div><strong style="color:var(--blue)">الوقت الإضافي:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> لتوقع الإضافي مع الفائز الصحيح | <strong style="color:var(--blue)">3 نقاط</strong> لتوقع الإضافي فقط</div></div>
+      <div class="rule-row"><span class="rule-icon">🎯</span><div><strong style="color:var(--orange)">ركلات الجزاء:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> لتوقع الركلات مع الفائز الصحيح | <strong style="color:var(--orange)">4 نقاط</strong> لتوقع الركلات فقط</div></div>
+      <div class="rule-row"><span class="rule-icon">❌</span><div><strong style="color:var(--red)">0 نقطة</strong> — طريقة الحسم خاطئة كلياً</div></div>
       <div class="rule-row"><span class="rule-icon">🔒</span><div>يُغلق التوقع تلقائياً لحظة انطلاق المباراة ولا يمكن التعديل</div></div>
       <div class="rule-row"><span class="rule-icon">📅</span><div>يُفتح التوقع قبل 48 ساعة فقط من موعد كل مباراة، ويُغلق نهائياً عند انطلاقها</div></div>
       <div class="rule-row"><span class="rule-icon">🌍</span><div>تشمل المسابقة جميع مراحل البطولة: 104 مباراة</div></div>
@@ -1111,7 +1116,7 @@ function buildMatchesPage(u){
           ?`<div style="text-align:center;margin-top:.4rem">
               <span class="badge bm" style="margin-bottom:.25rem">النتيجة: ${resultLabel(m)}</span><br>
               ${pts!==null
-                ?`<span class="badge ${pts===5?'bg':pts>=2?'bgr':'bb'}">${pts===5?'⭐ توقع كامل +5':pts===3?'✅ فائز+إضافي +3':pts===2?'✅ فائز صحيح +2':'❌ 0 نقطة'}</span>
+                ?`<span class="badge ${pts===5?'bg':pts>0?'bgr':'bb'}">${pts===5?'⭐ +5 نقاط':pts===4?'✅ ركلات جزاء +4':pts===3?'✅ وقت إضافي +3':pts===2?'✅ فائز صحيح +2':'❌ 0 نقطة'}</span>
                   ${hasPred(up)?`<span class="badge bm" style="margin-right:.3rem">توقعك: ${predLabel(up,m)}</span>`:''}`
                 :`<span class="badge bm">لم تتوقع هذه المباراة</span>`}
             </div>`
@@ -1129,8 +1134,8 @@ function buildMatchesPage(u){
           ?`<div style="margin-top:.625rem">
               <select id="meth-${m.id}" onchange="koMethodChange('${m.id}')" style="margin-bottom:.5rem;font-size:.78rem">
                 <option value="reg" ${(up.method||'reg')==='reg'?'selected':''}>⏱️ يُحسم في الوقت الأصلي (توقّع النتيجة)</option>
-                <option value="aet" ${up.method==='aet'?'selected':''}>⏳ يُحسم في الوقت الإضافي (اختر الفائز)</option>
-                <option value="pen" ${up.method==='pen'?'selected':''}>🥅 يُحسم بركلات الترجيح (اختر الفائز)</option>
+                <option value="aet" ${up.method==='aet'?'selected':''}>⏰ وقت إضافي — 3 نقاط (الفائز اختياري → 5)</option>
+                <option value="pen" ${up.method==='pen'?'selected':''}>🎯 ركلات جزاء — 4 نقاط (الفائز اختياري → 5)</option>
               </select>
               <div id="scorerow-${m.id}" class="score-inputs" style="display:${(up.method||'reg')==='reg'?'grid':'none'}">
                 <input type="number" class="score-input" id="p1-${m.id}" min="0" max="20" value="${up.method&&up.method!=='reg'?'':(up.r1??'')}" placeholder="0"/>
@@ -1413,8 +1418,9 @@ function buildSharePage(){
     <div class="share-card-sub">مسابقة توقع النتائج</div>
     <div style="margin:1rem 0;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.5),transparent)"></div>
     <div class="rules-mini">
-      <div class="rules-mini-row"><span>⭐</span> <strong style="color:var(--gold)">5 نقاط</strong> = النتيجة الصحيحة</div>
-      <div class="rules-mini-row"><span>✅</span> <strong style="color:var(--green)">2 نقطة</strong> = الفائز صحيح فقط</div>
+      <div class="rules-mini-row"><span>⏱️</span> الوقت الأصلي: <strong style="color:var(--gold)">5 نقاط</strong> للنتيجة | <strong style="color:var(--green)">2 نقطة</strong> للفائز</div>
+      <div class="rules-mini-row"><span>⏰</span> الوقت الإضافي: <strong style="color:var(--gold)">5</strong> مع الفائز | <strong style="color:var(--blue)">3 نقاط</strong> فقط</div>
+      <div class="rules-mini-row"><span>🎯</span> ركلات الجزاء: <strong style="color:var(--gold)">5</strong> مع الفائز | <strong style="color:var(--orange)">4 نقاط</strong> فقط</div>
       <div class="rules-mini-row"><span>🔒</span> التوقع يُفتح قبل 48 ساعة ويُغلق عند بداية المباراة</div>
       <div class="rules-mini-row"><span>📅</span> 104 مباراة من 11 يونيو إلى 19 يوليو</div>
     </div>
@@ -1456,8 +1462,9 @@ function shareWhatsapp(){
 
 سجل دخولك وتوقع نتائج 104 مباراة!
 
-- 5 نقاط للنتيجة الصحيحة بالضبط
-- 2 نقطة للفائز الصحيح فقط
+- الوقت الأصلي: 5 نقاط للنتيجة | 2 للفائز
+- الوقت الإضافي: 5 نقاط مع الفائز | 3 للتوقع فقط
+- ركلات الجزاء: 5 نقاط مع الفائز | 4 للتوقع فقط
 - 0 نقطة للتوقع الخاطئ
 
 التوقع يفتح قبل 48 ساعة من كل مباراة ويغلق عند بدايتها.
@@ -2037,10 +2044,12 @@ function buildScoringCard(){
 
   y+=58;
   const rows2=[
-    {pts:5, color:gold3,    bg:'#1a1400', border:gold+'66',   label:'الفائز صحيح + النتيجة صحيحة (وقت أصلي)', ex:'توقعت 2-1 وقت أصلي  ✓  انتهت 2-1'},
-    {pts:5, color:gold3,    bg:'#1a1400', border:gold+'66',   label:'الفائز صحيح + توقعت ركلات جزاء ✓',        ex:'توقعت ركلات جزاء  ✓  انتهت بركلات جزاء'},
-    {pts:3, color:'#ffd180',bg:'#1a1000', border:orange+'66', label:'الفائز صحيح + توقعت وقت إضافي ✓',         ex:'توقعت وقت إضافي  ✓  انتهت بوقت إضافي'},
-    {pts:2, color:'#a0c8ff',bg:'#091828', border:blue+'66',   label:'الفائز صحيح فقط (طريقة مختلفة)',           ex:'توقعت ركلات  ✗  انتهت بوقت أصلي (فائز صحيح)'},
+    {pts:5, color:gold3,    bg:'#1a1400', border:gold+'66',   label:'الوقت الأصلي — النتيجة الصحيحة بالضبط',    ex:'توقعت 2-1 وقت أصلي  ✓  انتهت 2-1'},
+    {pts:5, color:gold3,    bg:'#1a1400', border:gold+'66',   label:'ركلات جزاء + الفائز الصحيح ✓',              ex:'توقعت ركلات + الفائز  ✓  انتهت بركلات'},
+    {pts:5, color:gold3,    bg:'#1a1400', border:gold+'66',   label:'وقت إضافي + الفائز الصحيح ✓',               ex:'توقعت إضافي + الفائز  ✓  انتهت بإضافي'},
+    {pts:4, color:'#ffd180',bg:'#1a1000', border:orange+'66', label:'توقعت ركلات جزاء فقط (بدون فائز)',          ex:'توقعت ركلات جزاء  ✓  انتهت بركلات'},
+    {pts:3, color:'#a0e0ff',bg:'#091828', border:blue+'66',   label:'توقعت وقت إضافي فقط (بدون فائز)',           ex:'توقعت وقت إضافي  ✓  انتهت بإضافي'},
+    {pts:2, color:'#a0c8ff',bg:'#081420', border:blue+'44',   label:'الوقت الأصلي — الفائز صحيح فقط',            ex:'توقعت 2-1 وقت أصلي  ✓  انتهت 3-1'},
     {pts:0, color:'#ff8a80',bg:'#1a0808', border:red+'55',    label:'الفائز خاطئ',                               ex:'توقعت فوز ألمانيا  ✗  فازت البرازيل'},
   ];
   rows2.forEach(r=>{
@@ -2594,8 +2603,7 @@ function readPredInput(mid,m){
       if(r1===''||r2===''||r1==null||r2==null) return{err:'أدخل النتيجة كاملة'};
       return{value:{method:'reg',r1:parseInt(r1),r2:parseInt(r2)}};
     }
-    const win=parseInt(document.getElementById('pw-'+mid)?.value||'0');
-    if(!win) return{err:'اختر الفريق الفائز'};
+    const win=parseInt(document.getElementById('pw-'+mid)?.value||'0')||0;
     return{value:{method:meth,win}};
   }
   const r1=document.getElementById('p1-'+mid)?.value;
