@@ -685,23 +685,22 @@ function calcPts(pred,m){
   }
   // ── دور إقصائي ──
   const am=m.method||'reg', pm=pred.method||'reg';
-  if(pm!==am) return 0;                            // طريقة الحسم مختلفة → 0
-  if(pm==='reg'){                                  // وقت أصلي
-    const [pr1,pr2,rr1,rr2]=[pred.r1,pred.r2,m.r1,m.r2].map(Number);
-    if(isNaN(pr1)||isNaN(pr2)) return 0;
-    if(pr1===rr1&&pr2===rr2) return 5;
-    const po=pr1>pr2?1:pr1<pr2?-1:0, ro=rr1>rr2?1:rr1<rr2?-1:0;
-    return po===ro?2:0;
-  }
-  if(pm==='aet'){                                  // وقت إضافي: بدون فائز→3، فائز صحيح→5
+  if(pm===am){
+    if(pm==='reg'){                                // وقت أصلي
+      const [pr1,pr2,rr1,rr2]=[pred.r1,pred.r2,m.r1,m.r2].map(Number);
+      if(isNaN(pr1)||isNaN(pr2)) return 0;
+      if(pr1===rr1&&pr2===rr2) return 5;
+      const po=pr1>pr2?1:pr1<pr2?-1:0, ro=rr1>rr2?1:rr1<rr2?-1:0;
+      return po===ro?2:0;
+    }
     const aw=actualWinner(m), pw=predWinner(pred);
-    return (pw&&pw===aw)?5:3;
+    if(pw&&pw===aw) return 5;                       // فائز صحيح مع طريقة الحسم الصحيحة
+    return pm==='pen'?4:3;                           // بدون فائز صحيح: ركلات→4، إضافي→3
   }
-  if(pm==='pen'){                                  // ركلات جزاء: بدون فائز→4، فائز صحيح→5
-    const aw=actualWinner(m), pw=predWinner(pred);
-    return (pw&&pw===aw)?5:4;
-  }
-  return 0;
+  // طريقة الحسم مختلفة عن الفعلية — لا تُصفَّر تلقائياً:
+  // إن كان الفائز المتوقَّع (من النتيجة أو الاختيار) مطابقاً للفائز الفعلي، يُحتسب توقعاً جزئياً (2)
+  const aw=actualWinner(m), pw=predWinner(pred);
+  return (pw&&aw&&pw===aw)?2:0;
 }
 function userStats(un){
   const preds=DB.predictions()[un]||{};
@@ -950,7 +949,7 @@ function renderWelcome(){
       <div class="rule-row"><span class="rule-icon">⏱️</span><div><strong style="color:var(--gold2)">الوقت الأصلي:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> للنتيجة الصحيحة بالضبط | <strong style="color:var(--green)">2 نقطة</strong> للفائز الصحيح فقط</div></div>
       <div class="rule-row"><span class="rule-icon">⏰</span><div><strong style="color:var(--blue)">الوقت الإضافي:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> لتوقع الإضافي مع الفائز الصحيح | <strong style="color:var(--blue)">3 نقاط</strong> لتوقع الإضافي فقط</div></div>
       <div class="rule-row"><span class="rule-icon">🎯</span><div><strong style="color:var(--orange)">ركلات الجزاء:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> لتوقع الركلات مع الفائز الصحيح | <strong style="color:var(--orange)">4 نقاط</strong> لتوقع الركلات فقط</div></div>
-      <div class="rule-row"><span class="rule-icon">❌</span><div><strong style="color:var(--red)">0 نقطة</strong> — طريقة الحسم خاطئة كلياً</div></div>
+      <div class="rule-row"><span class="rule-icon">🔁</span><div><strong style="color:var(--green)">2 نقطة</strong> إن اختلفت طريقة الحسم المتوقَّعة عن الفعلية لكن الفائز صحيح | <strong style="color:var(--red)">0 نقطة</strong> إن كان الفائز خاطئاً</div></div>
       <div class="rule-row"><span class="rule-icon">🔒</span><div>يُغلق التوقع تلقائياً لحظة انطلاق المباراة ولا يمكن التعديل</div></div>
       <div class="rule-row"><span class="rule-icon">📅</span><div>يُفتح التوقع قبل 48 ساعة فقط من موعد كل مباراة، ويُغلق نهائياً عند انطلاقها</div></div>
       <div class="rule-row"><span class="rule-icon">🌍</span><div>تشمل المسابقة جميع مراحل البطولة: 104 مباراة</div></div>
@@ -2050,6 +2049,7 @@ function buildScoringCard(){
     {pts:4, color:'#ffd180',bg:'#1a1000', border:orange+'66', label:'توقعت ركلات جزاء فقط (بدون فائز)',          ex:'توقعت ركلات جزاء  ✓  انتهت بركلات'},
     {pts:3, color:'#a0e0ff',bg:'#091828', border:blue+'66',   label:'توقعت وقت إضافي فقط (بدون فائز)',           ex:'توقعت وقت إضافي  ✓  انتهت بإضافي'},
     {pts:2, color:'#a0c8ff',bg:'#081420', border:blue+'44',   label:'الوقت الأصلي — الفائز صحيح فقط',            ex:'توقعت 2-1 وقت أصلي  ✓  انتهت 3-1'},
+    {pts:2, color:'#a0c8ff',bg:'#081420', border:blue+'44',   label:'طريقة حسم مختلفة لكن الفائز صحيح',          ex:'توقعت 1-2 وقت أصلي  ✓  انتهت 2-3 بالإضافي'},
     {pts:0, color:'#ff8a80',bg:'#1a0808', border:red+'55',    label:'الفائز خاطئ',                               ex:'توقعت فوز ألمانيا  ✗  فازت البرازيل'},
   ];
   rows2.forEach(r=>{
