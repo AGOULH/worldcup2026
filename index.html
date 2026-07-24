@@ -29,7 +29,7 @@ body{background-image:radial-gradient(circle at 2px 2px,rgba(136,217,130,.05) 1p
 
 /* ── HERO ── */
 .hero{
-  background:linear-gradient(170deg,#040c1c 0%,#0d1e38 55%,#040c1c 100%);
+  background:linear-gradient(170deg,#0c0f0f 0%,#1a1c1c 55%,#0c0f0f 100%);
   padding:2.25rem 1rem 1.5rem;text-align:center;position:relative;overflow:hidden;
   border-bottom:3px solid var(--gold);
 }
@@ -42,19 +42,19 @@ body{background-image:radial-gradient(circle at 2px 2px,rgba(136,217,130,.05) 1p
 .hero-bg{
   position:absolute;inset:0;pointer-events:none;
   background:
-    radial-gradient(ellipse 90% 50% at 50% -10%,rgba(94,158,255,.22) 0%,transparent 60%),
-    radial-gradient(circle at 10% 80%,rgba(0,240,255,.1) 0%,transparent 40%),
-    radial-gradient(circle at 90% 80%,rgba(214,0,255,.1) 0%,transparent 40%);
+    radial-gradient(ellipse 90% 50% at 50% -10%,rgba(255,225,109,.22) 0%,transparent 60%),
+    radial-gradient(circle at 10% 80%,rgba(136,217,130,.1) 0%,transparent 40%),
+    radial-gradient(circle at 90% 80%,rgba(92,101,192,.1) 0%,transparent 40%);
 }
 .hero-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) ease-in-out infinite var(--delay,0s)}
 @keyframes twinkle{0%,100%{opacity:.1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
 .trophy-wrap{position:relative;display:inline-block;margin-bottom:.5rem}
-.trophy-glow{position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(circle,rgba(94,158,255,.3) 0%,transparent 70%);animation:pulse-glow 2s ease-in-out infinite}
+.trophy-glow{position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(circle,rgba(255,225,109,.3) 0%,transparent 70%);animation:pulse-glow 2s ease-in-out infinite}
 @keyframes pulse-glow{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.15);opacity:1}}
-.trophy-emoji{font-size:3.8rem;display:block;position:relative;animation:float 3.5s ease-in-out infinite;filter:drop-shadow(0 0 20px rgba(94,158,255,.6))}
+.trophy-emoji{font-size:3.8rem;display:block;position:relative;animation:float 3.5s ease-in-out infinite;filter:drop-shadow(0 0 20px rgba(255,225,109,.6))}
 @keyframes float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-12px) rotate(2deg)}}
-.hero h1{font-family:'Montserrat',sans-serif;font-size:3rem;letter-spacing:-1px;line-height:1;background:linear-gradient(135deg,#ffffff,var(--gold2) 55%,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;filter:drop-shadow(0 2px 12px rgba(94,158,255,.35))}
+.hero h1{font-family:'Montserrat',sans-serif;font-size:3rem;letter-spacing:-1px;line-height:1;background:linear-gradient(135deg,#ffffff,var(--gold2) 55%,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;filter:drop-shadow(0 2px 12px rgba(255,225,109,.35))}
 .hero-sub{font-size:.8rem;color:var(--muted2);margin-top:.3rem;letter-spacing:.5px}
 .hero-credit{font-size:.72rem;color:var(--gold);opacity:.75;margin-top:.25rem;font-weight:500}
 .hero-stats{display:flex;justify-content:center;gap:1.5rem;margin-top:1rem}
@@ -66,7 +66,7 @@ body{background-image:radial-gradient(circle at 2px 2px,rgba(136,217,130,.05) 1p
 .tabs{display:flex;background:rgba(18,20,20,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.15);overflow-x:auto;gap:0;position:sticky;top:0;z-index:100}
 .tabs::-webkit-scrollbar{display:none}
 .tab{padding:.7rem .875rem;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;flex-shrink:0;transition:all .2s;display:flex;align-items:center;gap:.3rem}
-.tab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(94,158,255,.08)}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(255,225,109,.08)}
 .tab:hover:not(.active){color:var(--text)}
 
 /* ── PAGES ── */
@@ -111,13 +111,13 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
 
 /* ── BADGES ── */
 .badge{display:inline-flex;align-items:center;gap:.2rem;padding:.18rem .55rem;border-radius:20px;font-size:.68rem;font-weight:700;line-height:1.4}
-.bg{background:rgba(94,158,255,.18);color:var(--gold)}
+.bg{background:rgba(255,225,109,.18);color:var(--gold)}
 .bb{background:rgba(255,45,85,.16);color:var(--red)}
 .bgr{background:rgba(0,230,118,.16);color:var(--green)}
 .bbl{background:rgba(0,194,255,.16);color:var(--blue)}
 .bm{background:rgba(90,116,148,.18);color:var(--muted2)}
 .bo{background:rgba(255,145,0,.16);color:var(--orange)}
-.bpu{background:rgba(214,0,255,.16);color:var(--purple)}
+.bpu{background:rgba(92,101,192,.16);color:var(--purple)}
 
 /* ── MATCH CARD ── */
 .match-card{
@@ -175,7 +175,7 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
 .sec-title{
   font-size:.88rem;font-weight:700;color:var(--gold);
   margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;
-  padding-bottom:.5rem;border-bottom:1px solid rgba(94,158,255,.15);
+  padding-bottom:.5rem;border-bottom:1px solid rgba(255,225,109,.15);
 }
 .sec-title .icon{font-size:1rem}
 
@@ -189,8 +189,8 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
 /* ── MISC ── */
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:.625rem}
 .group-header{
-  background:linear-gradient(135deg,rgba(94,158,255,.1),rgba(94,158,255,.03));
-  border:1px solid rgba(94,158,255,.2);border-radius:var(--r2);
+  background:linear-gradient(135deg,rgba(255,225,109,.1),rgba(255,225,109,.03));
+  border:1px solid rgba(255,225,109,.2);border-radius:var(--r2);
   padding:.4rem .75rem;margin-bottom:.6rem;font-size:.78rem;font-weight:700;
   color:var(--gold);display:flex;align-items:center;gap:.5rem;
 }
@@ -201,7 +201,7 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
   border:1px solid var(--border);color:var(--muted);white-space:nowrap;flex-shrink:0;
   transition:all .2s;font-weight:500;
 }
-.ftab.active{border-color:var(--gold);color:var(--gold);background:rgba(94,158,255,.1)}
+.ftab.active{border-color:var(--gold);color:var(--gold);background:rgba(255,225,109,.1)}
 .scroll-area{overflow-y:auto;max-height:65vh;padding-right:2px}
 .scroll-area::-webkit-scrollbar{width:3px}
 .scroll-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
@@ -217,14 +217,14 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
 
 /* ── WELCOME / RULES ── */
 .rules-card{
-  background:linear-gradient(160deg,#070e1e 0%,#0d1828 100%);
-  border:1px solid rgba(94,158,255,.3);border-radius:16px;
+  background:linear-gradient(160deg,#0c0f0f 0%,#1a1c1c 100%);
+  border:1px solid rgba(255,225,109,.3);border-radius:16px;
   padding:1.25rem;margin-bottom:.875rem;position:relative;overflow:hidden;
 }
 .rules-card::before{
   content:'';position:absolute;top:-30px;right:-30px;
   width:120px;height:120px;border-radius:50%;
-  background:radial-gradient(circle,rgba(94,158,255,.15) 0%,transparent 70%);
+  background:radial-gradient(circle,rgba(255,225,109,.15) 0%,transparent 70%);
 }
 .rule-row{display:flex;gap:.625rem;align-items:flex-start;margin-bottom:.625rem;font-size:.8rem;line-height:1.5}
 .rule-icon{font-size:1.05rem;flex-shrink:0;margin-top:.05rem}
@@ -240,20 +240,20 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
 
 /* ── SHARE CARD ── */
 .share-card{
-  background:linear-gradient(145deg,#040c1e,#0a1830,#040c1e);
-  border:2px solid rgba(94,158,255,.5);border-radius:20px;
+  background:linear-gradient(145deg,#0c0f0f,#1a1c1c,#0c0f0f);
+  border:2px solid rgba(255,225,109,.5);border-radius:20px;
   padding:1.5rem;text-align:center;margin-bottom:1rem;
   position:relative;overflow:hidden;
 }
 .share-card::before{
   content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(94,158,255,.15) 0%,transparent 60%);
+  background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(255,225,109,.15) 0%,transparent 60%);
 }
 .share-card-title{font-family:'Montserrat',sans-serif;font-size:1.8rem;letter-spacing:3px;color:var(--gold2);position:relative}
 .share-card-sub{font-size:.75rem;color:var(--muted2);margin-top:.25rem;position:relative}
 .rules-mini{text-align:right;margin:1rem 0;position:relative}
 .rules-mini-row{display:flex;align-items:center;gap:.5rem;font-size:.75rem;margin-bottom:.4rem;color:var(--text)}
-.share-footer{font-size:.65rem;color:var(--muted);margin-top:1rem;position:relative;border-top:1px solid rgba(94,158,255,.2);padding-top:.75rem}
+.share-footer{font-size:.65rem;color:var(--muted);margin-top:1rem;position:relative;border-top:1px solid rgba(255,225,109,.2);padding-top:.75rem}
 .qr-placeholder{
   width:80px;height:80px;border:2px solid var(--border2);border-radius:8px;
   display:flex;align-items:center;justify-content:center;
@@ -289,17 +289,17 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
 /* ── PROFILE AVATAR ── */
 .avatar{
   width:64px;height:64px;border-radius:50%;
-  background:linear-gradient(135deg,rgba(94,158,255,.35),rgba(94,158,255,.1));
-  border:2px solid rgba(94,158,255,.4);
+  background:linear-gradient(135deg,rgba(255,225,109,.35),rgba(255,225,109,.1));
+  border:2px solid rgba(255,225,109,.4);
   display:flex;align-items:center;justify-content:center;
   font-size:1.6rem;font-weight:700;color:var(--gold2);margin:0 auto .875rem;
-  box-shadow:0 0 20px rgba(94,158,255,.2);
+  box-shadow:0 0 20px rgba(255,225,109,.2);
 }
 
 /* ── COUNTDOWN ── */
 .countdown-box{
   display:inline-flex;gap:.4rem;align-items:center;
-  background:rgba(94,158,255,.1);border:1px solid rgba(94,158,255,.2);
+  background:rgba(255,225,109,.1);border:1px solid rgba(255,225,109,.2);
   border-radius:var(--r2);padding:.3rem .625rem;font-size:.72rem;
 }
 .cd-num{font-weight:700;color:var(--gold);font-family:'Montserrat',sans-serif}
@@ -1206,7 +1206,7 @@ function buildLeaderboard(){
     <button class="btn btn-green" onclick="exportLeaderboardImage()">📸 تصدير صورة</button>
     <button class="btn btn-blue" onclick="exportLeaderboardPDF()">📄 تصدير PDF</button>
   </div>`;
-  if(lb[0]) html+=`<div class="card glass" style="text-align:center;margin-bottom:.875rem;border-color:rgba(94,158,255,.4)">
+  if(lb[0]) html+=`<div class="card glass" style="text-align:center;margin-bottom:.875rem;border-color:rgba(255,225,109,.4)">
     <div style="font-size:2.8rem;margin-bottom:.25rem">👑</div>
     <div style="font-size:1.1rem;font-weight:700;color:var(--gold2)">${lb[0].name}</div>
     <div style="font-size:.72rem;color:var(--muted)">@${lb[0].username}</div>
@@ -1299,7 +1299,7 @@ function buildAdmin(){
   const done=matches.filter(m=>m.official);
   let html=`<div id="amsg" class="msg"></div>
 
-  <div class="card glass" style="border-color:rgba(94,158,255,.35);margin-bottom:1rem">
+  <div class="card glass" style="border-color:rgba(255,225,109,.35);margin-bottom:1rem">
     <div class="sec-title"><span class="icon">📑</span> التقرير اليومي</div>
     <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
       تقرير شامل بكل نتائج اليوم والترتيب الحالي للمشاركين — جاهز للمشاركة عبر الواتساب كـ PDF.
@@ -1403,7 +1403,7 @@ function buildAdmin(){
   users.forEach(u=>{
     const st=userStats(u.username);
     html+=`<div class="card2" style="display:flex;align-items:center;gap:.625rem;padding:.6rem .75rem;margin-bottom:.35rem">
-      <div style="width:34px;height:34px;border-radius:50%;background:rgba(94,158,255,.15);border:1px solid rgba(94,158,255,.25);display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:var(--gold);flex-shrink:0">${u.name[0]}</div>
+      <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,225,109,.15);border:1px solid rgba(255,225,109,.25);display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:var(--gold);flex-shrink:0">${u.name[0]}</div>
       <div style="flex:1"><div style="font-size:.82rem;font-weight:600">${u.name}</div><div style="font-size:.66rem;color:var(--muted)">@${u.username}</div></div>
       <div style="text-align:center;flex-shrink:0">
         <div style="font-size:1rem;font-weight:700;color:var(--gold);font-family:'Montserrat',sans-serif">${st.total}</div>
@@ -1424,7 +1424,7 @@ function buildSharePage(){
   <div class="share-card">
     <div class="share-card-title">🏆 WORLD CUP 2026</div>
     <div class="share-card-sub">مسابقة توقع النتائج</div>
-    <div style="margin:1rem 0;height:1px;background:linear-gradient(90deg,transparent,rgba(94,158,255,.5),transparent)"></div>
+    <div style="margin:1rem 0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,225,109,.5),transparent)"></div>
     <div class="rules-mini">
       <div class="rules-mini-row"><span>⏱️</span> الوقت الأصلي: <strong style="color:var(--gold)">5 نقاط</strong> للنتيجة | <strong style="color:var(--green)">2 نقطة</strong> للفائز</div>
       <div class="rules-mini-row"><span>⏰</span> الوقت الإضافي: <strong style="color:var(--gold)">5</strong> مع الفائز | <strong style="color:var(--blue)">3 نقاط</strong> فقط</div>
@@ -1432,7 +1432,7 @@ function buildSharePage(){
       <div class="rules-mini-row"><span>🔒</span> التوقع يُفتح قبل 48 ساعة ويُغلق عند بداية المباراة</div>
       <div class="rules-mini-row"><span>📅</span> 104 مباراة من 11 يونيو إلى 19 يوليو</div>
     </div>
-    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(94,158,255,.3),transparent);margin:.875rem 0"></div>
+    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,225,109,.3),transparent);margin:.875rem 0"></div>
     ${top?`<div style="font-size:.75rem;color:var(--muted2);position:relative">المتصدر الحالي: <strong style="color:var(--gold2)">${top.name}</strong> (${top.total} نقطة)</div>`:'<div style="font-size:.75rem;color:var(--muted);position:relative">انضم أول!</div>'}
     <div class="share-footer">
       <div>إعداد: حسن العاقول</div>
@@ -1692,7 +1692,7 @@ function buildLeaderboardCanvas(){
 
   // Background gradient
   const bg=x.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#060d1a');bg.addColorStop(.5,'#0d1e38');bg.addColorStop(1,'#060d1a');
+  bg.addColorStop(0,'#0c0f0f');bg.addColorStop(.5,'#1a1c1c');bg.addColorStop(1,'#0c0f0f');
   x.fillStyle=bg;x.fillRect(0,0,W,H);
 
   // Subtle stars
@@ -1705,7 +1705,7 @@ function buildLeaderboardCanvas(){
 
   // Gold top glow
   const glow=x.createRadialGradient(W/2,0,50,W/2,0,420);
-  glow.addColorStop(0,'rgba(94,158,255,.30)');glow.addColorStop(1,'transparent');
+  glow.addColorStop(0,'rgba(255,225,109,.30)');glow.addColorStop(1,'transparent');
   x.fillStyle=glow;x.fillRect(0,0,W,420);
 
   x.textAlign='center';
@@ -1713,23 +1713,23 @@ function buildLeaderboardCanvas(){
   x.font='64px serif';
   x.fillText('🏆',W/2,86);
   // Title
-  x.fillStyle='#8fb8ff';
+  x.fillStyle='#ffdb3c';
   x.font='bold 44px Montserrat, Tajawal, Arial';
   x.fillText('ترتيب مسابقة كأس العالم 2026',W/2,150);
   // Date line
   const dateStr=new Date().toLocaleDateString('ar-SA',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Riyadh'});
   const timeStr=new Date().toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Riyadh'});
-  x.fillStyle='#7a94b4';
+  x.fillStyle='#bfcaba';
   x.font='24px Montserrat, Tajawal, Arial';
   x.fillText(`${dateStr} - ${timeStr}`,W/2,192);
   // Hype line (rotating race phrase)
-  x.fillStyle='#5e9eff';
+  x.fillStyle='#ffe16d';
   x.font='bold 27px Montserrat, Tajawal, Arial';
   x.fillText(hypeRace(),W/2,238);
   // عبارة المركز الأخير في العنوان
   if(lb.length>=3){
     const last=lb[lb.length-1];
-    x.fillStyle='#7a94b4';
+    x.fillStyle='#bfcaba';
     x.font='23px Montserrat, Tajawal, Arial';
     x.fillText(`${last.name}: ${hypeBottom()}`,W/2,282);
   }
@@ -1744,7 +1744,7 @@ function buildLeaderboardCanvas(){
     const rh=i<3?topRowH:rowH;
     const isTop=i===0;
     // Row card
-    x.fillStyle=isTop?'rgba(94,158,255,.13)':i<3?'rgba(20,33,54,.9)':'rgba(16,29,48,.85)';
+    x.fillStyle=isTop?'rgba(255,225,109,.13)':i<3?'rgba(20,33,54,.9)':'rgba(16,29,48,.85)';
     roundRect(x,30,y+8,W-60,rh-16,16);
     x.fill();
     x.strokeStyle=isTop?'rgba(255,215,0,.5)':i===1?'rgba(192,192,192,.35)':i===2?'rgba(205,127,50,.35)':'rgba(28,45,69,.9)';
@@ -1757,16 +1757,16 @@ function buildLeaderboardCanvas(){
     // Rank medal/number (right side, RTL)
     x.textAlign='center';
     x.font=i<3?'40px serif':'bold 32px Montserrat, Tajawal, Arial';
-    x.fillStyle=i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#5a7494';
+    x.fillStyle=i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#8a9485';
     x.fillText(i<3?medals[i]:String(i+1),W-80,cy+14);
 
     // Name
     x.textAlign='right';
-    x.fillStyle=isTop?'#8fb8ff':'#d8e8f8';
+    x.fillStyle=isTop?'#ffdb3c':'#e2e2e2';
     x.font='bold 30px Montserrat, Tajawal, Arial';
     x.fillText(u.name,W-135,cy-2);
     // Stats line
-    x.fillStyle='#7a94b4';
+    x.fillStyle='#bfcaba';
     x.font='21px Montserrat, Tajawal, Arial';
     x.fillText(`${u.correct} صحيحة | ${u.half} جزئية | ${u.count} متوقعة`,W-135,cy+30);
 
@@ -1780,7 +1780,7 @@ function buildLeaderboardCanvas(){
 
     // Points (left)
     x.textAlign='left';
-    x.fillStyle='#5e9eff';
+    x.fillStyle='#ffe16d';
     x.font='bold 44px Montserrat, Tajawal, Arial';
     x.fillText(String(u.total),58,cy+16);
 
@@ -1788,7 +1788,7 @@ function buildLeaderboardCanvas(){
     const barW=200, barX=140, barY=cy+4;
     x.fillStyle='rgba(28,45,69,.9)';
     roundRect(x,barX,barY,barW,8,4);x.fill();
-    x.fillStyle='#5e9eff';
+    x.fillStyle='#ffe16d';
     const fw=Math.max(8,Math.round(barW*(u.total/maxPts)));
     roundRect(x,barX,barY,fw,8,4);x.fill();
 
@@ -1797,11 +1797,11 @@ function buildLeaderboardCanvas(){
 
   // Footer
   const fy=y;
-  x.strokeStyle='rgba(94,158,255,.3)';x.lineWidth=1;
+  x.strokeStyle='rgba(255,225,109,.3)';x.lineWidth=1;
   x.beginPath();x.moveTo(60,fy+18);x.lineTo(W-60,fy+18);x.stroke();
   x.textAlign='center';
   // Credit
-  x.fillStyle='#5a7494';
+  x.fillStyle='#8a9485';
   x.font='21px Montserrat, Tajawal, Arial';
   x.fillText('مسابقة توقع كأس العالم 2026 | إعداد: حسن العاقول',W/2,fy+52);
 
@@ -1866,36 +1866,36 @@ function buildReportCanvas(mode){
 
   // خلفية
   const bg=x.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#060d1a');bg.addColorStop(.5,'#0d1e38');bg.addColorStop(1,'#060d1a');
+  bg.addColorStop(0,'#0c0f0f');bg.addColorStop(.5,'#1a1c1c');bg.addColorStop(1,'#0c0f0f');
   x.fillStyle=bg;x.fillRect(0,0,W,H);
   x.fillStyle='rgba(255,255,255,.2)';
   for(let i=0;i<50;i++){x.beginPath();x.arc(Math.random()*W,Math.random()*H,Math.random()*1.3+.4,0,7);x.fill();}
   const glow=x.createRadialGradient(W/2,0,40,W/2,0,380);
-  glow.addColorStop(0,'rgba(94,158,255,.28)');glow.addColorStop(1,'transparent');
+  glow.addColorStop(0,'rgba(255,225,109,.28)');glow.addColorStop(1,'transparent');
   x.fillStyle=glow;x.fillRect(0,0,W,380);
 
   // العنوان
   x.textAlign='center';
   x.font='52px serif';x.fillText('📋',W/2,80);
-  x.fillStyle='#8fb8ff';x.font='bold 40px Montserrat, Tajawal, Arial';
+  x.fillStyle='#ffdb3c';x.font='bold 40px Montserrat, Tajawal, Arial';
   x.fillText(mode==='today'?'تقرير اليوم':'التقرير الشامل',W/2,138);
   const dStr=new Date().toLocaleDateString('ar-SA',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Riyadh'});
   const tStr=new Date().toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Riyadh'});
-  x.fillStyle='#7a94b4';x.font='22px Montserrat, Tajawal, Arial';
+  x.fillStyle='#bfcaba';x.font='22px Montserrat, Tajawal, Arial';
   x.fillText(`${dStr} - ${tStr}`,W/2,176);
 
   let y=headerH;
   if(!dates.length){
-    x.fillStyle='#7a94b4';x.font='24px Montserrat, Tajawal, Arial';x.textAlign='center';
+    x.fillStyle='#bfcaba';x.font='24px Montserrat, Tajawal, Arial';x.textAlign='center';
     x.fillText('لا توجد نتائج محسومة في هذا اليوم',W/2,y+40);
     y+=80;
   }
   dates.forEach(d=>{
     // عنوان التاريخ
     const dispDate=new Date(d+'T12:00:00').toLocaleDateString('ar-SA',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Riyadh'});
-    x.fillStyle='rgba(94,158,255,.13)';
+    x.fillStyle='rgba(255,225,109,.13)';
     roundRect(x,PAD,y+8,W-2*PAD,38,10);x.fill();
-    x.textAlign='right';x.fillStyle='#8fb8ff';x.font='bold 22px Montserrat, Tajawal, Arial';
+    x.textAlign='right';x.fillStyle='#ffdb3c';x.font='bold 22px Montserrat, Tajawal, Arial';
     x.fillText('📅 '+dispDate,W-PAD-16,y+34);
     y+=54;
     // المباريات
@@ -1906,7 +1906,7 @@ function buildReportCanvas(mode){
       roundRect(x,PAD,y+6,W-2*PAD,100,14);x.stroke();
       // أسماء + نتيجة
       x.textAlign='center';
-      x.fillStyle='#d8e8f8';x.font='bold 26px Montserrat, Tajawal, Arial';
+      x.fillStyle='#e2e2e2';x.font='bold 26px Montserrat, Tajawal, Arial';
       x.fillText(isKO(m)&&m.method==='pen'
         ?`${teamName(m.t1)}  🥅 ركلات  ${teamName(m.t2)}`
         :`${teamName(m.t1)}  ${m.r1} - ${m.r2}${isKO(m)&&m.method==='aet'?' (إضافي)':''}  ${teamName(m.t2)}`,W/2,y+38);
@@ -1921,11 +1921,11 @@ function buildReportCanvas(mode){
         if(pts===5){exact++;exactNames.push(u.name);}
         else if(pts===2)winner++;
       });
-      x.fillStyle='#7a94b4';x.font='17px Montserrat, Tajawal, Arial';
+      x.fillStyle='#bfcaba';x.font='17px Montserrat, Tajawal, Arial';
       x.fillText(`⭐ ${exact} أصابوا النتيجة  |  ✅ ${winner} أصابوا الفائز`,W/2,y+66);
       // أسماء المصيبين بالضبط
       if(exactNames.length){
-        x.fillStyle='#5e9eff';x.font='bold 15px Montserrat, Tajawal, Arial';
+        x.fillStyle='#ffe16d';x.font='bold 15px Montserrat, Tajawal, Arial';
         const namesTxt='⭐ '+exactNames.join('  •  ');
         x.fillText(namesTxt,W/2,y+90);
       }
@@ -1936,27 +1936,27 @@ function buildReportCanvas(mode){
 
   // الترتيب الحالي
   x.textAlign='center';
-  x.fillStyle='#8fb8ff';x.font='bold 30px Montserrat, Tajawal, Arial';
+  x.fillStyle='#ffdb3c';x.font='bold 30px Montserrat, Tajawal, Arial';
   x.fillText('🏆 الترتيب الحالي',W/2,y+44);
   y+=lbTitleH;
   const medals=['🥇','🥈','🥉'];
   lb.slice(0,12).forEach((u,i)=>{
-    x.fillStyle=i===0?'rgba(94,158,255,.13)':'rgba(16,29,48,.8)';
+    x.fillStyle=i===0?'rgba(255,225,109,.13)':'rgba(16,29,48,.8)';
     roundRect(x,PAD,y+4,W-2*PAD,52,12);x.fill();
     x.textAlign='center';x.font=i<3?'26px serif':'bold 22px Montserrat, Tajawal, Arial';
-    x.fillStyle=i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#5a7494';
+    x.fillStyle=i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#8a9485';
     x.fillText(i<3?medals[i]:String(i+1),W-PAD-40,y+38);
-    x.textAlign='right';x.fillStyle=i===0?'#8fb8ff':'#d8e8f8';x.font='bold 24px Montserrat, Tajawal, Arial';
+    x.textAlign='right';x.fillStyle=i===0?'#ffdb3c':'#e2e2e2';x.font='bold 24px Montserrat, Tajawal, Arial';
     x.fillText(u.name,W-PAD-90,y+38);
-    x.textAlign='left';x.fillStyle='#5e9eff';x.font='bold 30px Montserrat, Tajawal, Arial';
+    x.textAlign='left';x.fillStyle='#ffe16d';x.font='bold 30px Montserrat, Tajawal, Arial';
     x.fillText(String(u.total),PAD+24,y+40);
-    x.fillStyle='#7a94b4';x.font='15px Montserrat, Tajawal, Arial';
+    x.fillStyle='#bfcaba';x.font='15px Montserrat, Tajawal, Arial';
     x.fillText('نقطة',PAD+80,y+40);
     y+=60;
   });
 
   // التذييل
-  x.textAlign='center';x.fillStyle='#5a7494';x.font='19px Montserrat, Tajawal, Arial';
+  x.textAlign='center';x.fillStyle='#8a9485';x.font='19px Montserrat, Tajawal, Arial';
   x.fillText('مسابقة توقع كأس العالم 2026 | إعداد: حسن العاقول',W/2,y+40);
 
   return {cv,W,H};
@@ -1968,14 +1968,14 @@ function buildScoringCard(){
   const cv=document.createElement('canvas');
   cv.width=W; cv.height=H;
   const cx=cv.getContext('2d');
-  const gold='#5e9eff', gold2='#8fb8ff', gold3='#cfe0ff';
-  const dark='#060d1a', card='#0c1628', card2='#0e1a2c';
-  const green='#00c853', red='#f44336', blue='#3d8ef0', orange='#ff9800';
-  const text='#d8e8f8', muted='#5a7494', muted2='#7a94b4';
+  const gold='#ffe16d', gold2='#ffdb3c', gold3='#fff9ef';
+  const dark='#0c0f0f', card='#1a1c1c', card2='#1e2020';
+  const green='#88d982', red='#ff5c5c', blue='#00c2ff', orange='#ff9100';
+  const text='#e2e2e2', muted='#8a9485', muted2='#bfcaba';
 
   // خلفية
   const bg=cx.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#040c1c'); bg.addColorStop(0.5,'#0a1628'); bg.addColorStop(1,'#040c1c');
+  bg.addColorStop(0,'#0c0f0f'); bg.addColorStop(0.5,'#1a1c1c'); bg.addColorStop(1,'#0c0f0f');
   cx.fillStyle=bg; cx.fillRect(0,0,W,H);
 
   // نجوم عشوائية
@@ -2078,7 +2078,7 @@ function buildScoringCard(){
 
   // ملاحظة
   y+=4;
-  cx.fillStyle='rgba(94,158,255,0.08)'; cx.beginPath(); cx.roundRect(30,y,W-60,52,8); cx.fill();
+  cx.fillStyle='rgba(255,225,109,0.08)'; cx.beginPath(); cx.roundRect(30,y,W-60,52,8); cx.fill();
   cx.strokeStyle=gold+'33'; cx.lineWidth=1; cx.beginPath(); cx.roundRect(30,y,W-60,52,8); cx.stroke();
   cx.font='17px Montserrat, Tajawal,Arial'; cx.fillStyle=muted2; cx.textAlign='center';
   cx.fillText('⏰ التوقع يُفتح 48 ساعة قبل المباراة ويُغلق عند الانطلاق',W/2,y+22);
@@ -2109,14 +2109,14 @@ async function exportScoringCard(){
   overlay.id='scoring-overlay';
   overlay.style.cssText='position:fixed;inset:0;background:rgba(3,7,15,.93);z-index:9000;display:flex;flex-direction:column;overflow:hidden';
   overlay.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(94,158,255,.2);flex-shrink:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(255,225,109,.2);flex-shrink:0">
       <span style="font-size:.85rem;font-weight:700;color:var(--gold)">🃏 آلية النقاط</span>
       <button onclick="document.getElementById('scoring-overlay').remove()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:.2rem .5rem">✕</button>
     </div>
     <div style="flex:1;overflow-y:auto;overflow-x:hidden;display:flex;justify-content:center;padding:.75rem">
       <img src="${imgData}" style="width:100%;max-width:600px;border-radius:10px;display:block" loading="lazy"/>
     </div>
-    <div style="padding:.75rem;background:rgba(0,0,0,.5);border-top:1px solid rgba(94,158,255,.2);display:flex;gap:.5rem;flex-shrink:0">
+    <div style="padding:.75rem;background:rgba(0,0,0,.5);border-top:1px solid rgba(255,225,109,.2);display:flex;gap:.5rem;flex-shrink:0">
       <button class="btn btn-green" style="flex:1" onclick="_scoringShare()">📤 مشاركة (واتساب)</button>
       <button class="btn btn-blue" style="flex:1" onclick="_scoringDownload()">⬇️ تنزيل صورة</button>
     </div>`;
@@ -2158,14 +2158,14 @@ async function exportDailyReport(mode){
   overlay.id='report-overlay';
   overlay.style.cssText='position:fixed;inset:0;background:rgba(3,7,15,.93);z-index:9000;display:flex;flex-direction:column;overflow:hidden';
   overlay.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(94,158,255,.2);flex-shrink:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(255,225,109,.2);flex-shrink:0">
       <span style="font-size:.85rem;font-weight:700;color:var(--gold)">📋 ${fname}</span>
       <button onclick="document.getElementById('report-overlay').remove()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:.2rem .5rem">✕</button>
     </div>
     <div style="flex:1;overflow-y:auto;overflow-x:hidden;display:flex;justify-content:center;padding:.75rem">
       <img id="report-img" src="${imgData}" style="width:100%;max-width:600px;border-radius:10px;display:block" loading="lazy"/>
     </div>
-    <div style="padding:.75rem;background:rgba(0,0,0,.5);border-top:1px solid rgba(94,158,255,.2);display:flex;gap:.5rem;flex-shrink:0">
+    <div style="padding:.75rem;background:rgba(0,0,0,.5);border-top:1px solid rgba(255,225,109,.2);display:flex;gap:.5rem;flex-shrink:0">
       <button id="report-share-btn" class="btn btn-green" style="flex:1" onclick="_reportShare('${fname}')">📤 مشاركة (واتساب)</button>
       <button class="btn btn-blue" style="flex:1" onclick="_reportDownloadImg('${fname}')">⬇️ تنزيل صورة</button>
       ${typeof window.jspdf!=='undefined'?`<button class="btn btn-outline" style="flex:1" onclick="_reportDownloadPdf('${fname}')">📄 PDF</button>`:''}
@@ -2329,7 +2329,7 @@ function buildDashboard(u){
 
   // Personal summary (non-admin)
   if(!u.isAdmin){
-    html+=`<div class="card glass" style="border-color:rgba(94,158,255,.3);margin-bottom:.875rem">
+    html+=`<div class="card glass" style="border-color:rgba(255,225,109,.3);margin-bottom:.875rem">
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
         <div class="avatar" style="width:48px;height:48px;font-size:1.2rem;margin:0">${u.name[0].toUpperCase()}</div>
         <div><div style="font-weight:700;font-size:.95rem">${u.name}</div><div style="font-size:.7rem;color:var(--muted)">ترتيبك: ${myRank||'-'} من ${totalPlayers}</div></div>
@@ -2448,7 +2448,7 @@ function drawDashboardCharts(){
   if(typeof Chart==='undefined') return;
   const lb=leaderboard();
   if(!lb.length) return;
-  const gold='#5e9eff',green='#00c853',blue='#3d8ef0',red='#f44336',muted='#5a7494';
+  const gold='#ffe16d',green='#88d982',blue='#00c2ff',red='#ff5c5c',muted='#8a9485';
   Chart.defaults.font.family='Montserrat, Tajawal';
   Chart.defaults.color=muted;
 
@@ -2466,7 +2466,7 @@ function drawDashboardCharts(){
   let ex=0,ou=0,wr=0;
   lb.forEach(p=>{ex+=p.correct;ou+=p.half;wr+=p.wrong;});
   const c3=document.getElementById('chart-dist');
-  if(c3&&(ex+ou+wr>0))_charts.push(new Chart(c3,{type:'doughnut',data:{labels:['نتيجة صحيحة (5)','فائز صحيح (2)','خاطئة (0)'],datasets:[{data:[ex,ou,wr],backgroundColor:[green,blue,red],borderColor:'#0c1628',borderWidth:2}]},options:{plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:11}}}},maintainAspectRatio:false,cutout:'60%'}}));
+  if(c3&&(ex+ou+wr>0))_charts.push(new Chart(c3,{type:'doughnut',data:{labels:['نتيجة صحيحة (5)','فائز صحيح (2)','خاطئة (0)'],datasets:[{data:[ex,ou,wr],backgroundColor:[green,blue,red],borderColor:'#1a1c1c',borderWidth:2}]},options:{plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:11}}}},maintainAspectRatio:false,cutout:'60%'}}));
 }
 
 // PAGE ROUTER
