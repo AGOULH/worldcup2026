@@ -372,6 +372,31 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
   .stat-n{font-size:1.3rem}
 }
 </style>
+<style>
+/* ── ICON SYSTEM (SVG) ── */
+.ic{display:inline-block;flex-shrink:0}
+.ic-ring{display:inline-grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;border:1px solid rgba(240,208,128,.32);background:rgba(240,208,128,.08);flex-shrink:0}
+.rule-icon{display:inline-grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05)}
+.sec-title .icon{display:inline-grid;place-items:center;width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);font-size:0}
+.tab .ic{opacity:.9}
+.tab.active .ic{opacity:1}
+/* ── CIRCULAR FLAGS ── */
+.team-flag,.flag-chip{display:inline-grid !important;place-items:center;width:2.35rem;height:2.35rem;border-radius:50%;border:2px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);line-height:1;overflow:hidden}
+.flag-chip{width:1.75rem;height:1.75rem;border-width:1px;vertical-align:-.45rem}
+/* ── MOTION ── */
+@keyframes ic-pop{0%{opacity:0;transform:scale(.85)}60%{transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
+@keyframes row-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes shine{0%{transform:translateX(-140%)}100%{transform:translateX(140%)}}
+.card,.card2{animation:row-in .35s ease both}
+.card{position:relative;overflow:hidden}
+.card::after{content:'';position:absolute;top:0;bottom:0;width:40%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);transform:translateX(-140%)}
+.card:hover::after{animation:shine 1.1s ease}
+.card2{transition:border-color .2s ease,transform .2s ease}
+.card2:hover{border-color:rgba(240,208,128,.35);transform:translateY(-2px)}
+.sec-title .icon .ic,.rule-icon .ic{animation:ic-pop .35s ease both}
+.badge .ic{vertical-align:-2px;margin-left:2px}
+.btn .ic{vertical-align:-3px;margin-left:.25rem}
+</style>
 </head>
 <body>
 
@@ -410,7 +435,7 @@ label{font-size:.76rem;color:var(--muted2);display:block;margin-bottom:.3rem;fon
 
 <!-- Notification banner -->
 <div class="notif-banner" id="notif">
-  <span class="notif-icon" id="notif-icon">✅</span>
+  <span class="notif-icon" id="notif-icon"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path> <path d="m9 11 3 3L22 4"></path></svg></span>
   <span class="notif-text" id="notif-text"></span>
   <button class="notif-close" onclick="closeNotif()">✕</button>
 </div>
@@ -717,7 +742,7 @@ function within48h(m){const d=m.ts-now(); return d>-7200000&&d<172800000}
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Riyadh'})}
 function fmtDate(ts){return new Date(ts).toLocaleDateString('ar-SA',{weekday:'short',month:'short',day:'numeric',timeZone:'Asia/Riyadh'})}
 function teamName(full){return full.split(' ').slice(1).join(' ')||full}
-function teamFlag(full){return full.split(' ')[0]}
+function teamFlag(full){return '<span class="flag-chip">'+full.split(' ')[0]+'</span>'}
 // مباراة إقصائية (كل ما هو ليس دور مجموعات)
 function isKO(m){return m.stage!=='دور المجموعات';}
 const METH_SHORT={reg:'أصلي',aet:'إضافي',pen:'ركلات'};
@@ -992,8 +1017,8 @@ function updateHeroStats(){
 // NOTIFICATIONS
 // ═══════════════════════════════════════
 let notifTimer=null;
-function showNotif(text,icon='✅',dur=3000){
-  document.getElementById('notif-icon').textContent=icon;
+function showNotif(text,icon='<svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path> <path d="m9 11 3 3L22 4"></path></svg>',dur=3000){
+  document.getElementById('notif-icon').innerHTML=icon;
   document.getElementById('notif-text').textContent=text;
   document.getElementById('notif').classList.add('show');
   if(notifTimer) clearTimeout(notifTimer);
@@ -1028,15 +1053,15 @@ function renderWelcome(){
       <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">FIFA World Cup 2026</div>
     </div>
     <div style="background:rgba(0,0,0,.3);border-radius:10px;padding:.875rem;margin-bottom:.875rem">
-      <div class="rule-row"><span class="rule-icon">⏱️</span><div><strong style="color:var(--gold2)">الوقت الأصلي:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> للنتيجة الصحيحة بالضبط | <strong style="color:var(--green)">2 نقطة</strong> للفائز الصحيح فقط</div></div>
-      <div class="rule-row"><span class="rule-icon">⏰</span><div><strong style="color:var(--blue)">الوقت الإضافي:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> لتوقع الإضافي مع الفائز الصحيح | <strong style="color:var(--blue)">3 نقاط</strong> لتوقع الإضافي فقط</div></div>
-      <div class="rule-row"><span class="rule-icon">🎯</span><div><strong style="color:var(--orange)">ركلات الجزاء:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> لتوقع الركلات مع الفائز الصحيح | <strong style="color:var(--orange)">4 نقاط</strong> لتوقع الركلات فقط</div></div>
-      <div class="rule-row"><span class="rule-icon">🔁</span><div><strong style="color:var(--green)">2 نقطة</strong> إن اختلفت طريقة الحسم المتوقَّعة عن الفعلية لكن الفائز صحيح | <strong style="color:var(--red)">0 نقطة</strong> إن كان الفائز خاطئاً</div></div>
-      <div class="rule-row"><span class="rule-icon">🔒</span><div>يُغلق التوقع تلقائياً لحظة انطلاق المباراة ولا يمكن التعديل</div></div>
-      <div class="rule-row"><span class="rule-icon">📅</span><div>يُفتح التوقع قبل 48 ساعة فقط من موعد كل مباراة، ويُغلق نهائياً عند انطلاقها</div></div>
-      <div class="rule-row"><span class="rule-icon">🌍</span><div>تشمل المسابقة جميع مراحل البطولة: 104 مباراة</div></div>
-      <div class="rule-row"><span class="rule-icon">🏆</span><div>الفائز من يجمع أعلى رصيد من النقاط في نهاية البطولة</div></div>
-      <div class="rule-row"><span class="rule-icon">👥</span><div>يمكن للجميع المشاركة عبر رابط الموقع بإنشاء حساب خاص</div></div>
+      <div class="rule-row"><span class="rule-icon"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="10" x2="14" y1="2" y2="2"></line> <line x1="12" x2="15" y1="14" y2="11"></line> <circle cx="12" cy="14" r="8"></circle></svg></span><div><strong style="color:var(--gold2)">الوقت الأصلي:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> للنتيجة الصحيحة بالضبط | <strong style="color:var(--green)">2 نقطة</strong> للفائز الصحيح فقط</div></div>
+      <div class="rule-row"><span class="rule-icon"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><circle cx="12" cy="12" r="10"></circle> <path d="M12 6v6l4 2"></path></svg></span><div><strong style="color:var(--blue)">الوقت الإضافي:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> لتوقع الإضافي مع الفائز الصحيح | <strong style="color:var(--blue)">3 نقاط</strong> لتوقع الإضافي فقط</div></div>
+      <div class="rule-row"><span class="rule-icon"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><circle cx="12" cy="12" r="10"></circle> <circle cx="12" cy="12" r="6"></circle> <circle cx="12" cy="12" r="2"></circle></svg></span><div><strong style="color:var(--orange)">ركلات الجزاء:</strong> <strong style="color:var(--gold2)">5 نقاط</strong> لتوقع الركلات مع الفائز الصحيح | <strong style="color:var(--orange)">4 نقاط</strong> لتوقع الركلات فقط</div></div>
+      <div class="rule-row"><span class="rule-icon"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path> <path d="M21 3v5h-5"></path> <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path> <path d="M8 16H3v5"></path></svg></span><div><strong style="color:var(--green)">2 نقطة</strong> إن اختلفت طريقة الحسم المتوقَّعة عن الفعلية لكن الفائز صحيح | <strong style="color:var(--red)">0 نقطة</strong> إن كان الفائز خاطئاً</div></div>
+      <div class="rule-row"><span class="rule-icon"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect> <path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span><div>يُغلق التوقع تلقائياً لحظة انطلاق المباراة ولا يمكن التعديل</div></div>
+      <div class="rule-row"><span class="rule-icon"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M8 2v4"></path> <path d="M16 2v4"></path> <rect width="18" height="18" x="3" y="4" rx="2"></rect> <path d="M3 10h18"></path> <path d="M8 14h.01"></path> <path d="M12 14h.01"></path> <path d="M16 14h.01"></path> <path d="M8 18h.01"></path> <path d="M12 18h.01"></path> <path d="M16 18h.01"></path></svg></span><div>يُفتح التوقع قبل 48 ساعة فقط من موعد كل مباراة، ويُغلق نهائياً عند انطلاقها</div></div>
+      <div class="rule-row"><span class="rule-icon"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><circle cx="12" cy="12" r="10"></circle> <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path> <path d="M2 12h20"></path></svg></span><div>تشمل المسابقة جميع مراحل البطولة: 104 مباراة</div></div>
+      <div class="rule-row"><span class="rule-icon"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"></path> <path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"></path> <path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"></path></svg></span><div>الفائز من يجمع أعلى رصيد من النقاط في نهاية البطولة</div></div>
+      <div class="rule-row"><span class="rule-icon"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path> <path d="M16 3.128a4 4 0 0 1 0 7.744"></path> <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path> <circle cx="9" cy="7" r="4"></circle></svg></span><div>يمكن للجميع المشاركة عبر رابط الموقع بإنشاء حساب خاص</div></div>
     </div>
     <div class="check-area" id="agree-wrap" onclick="toggleAgree()">
       <input type="checkbox" id="agree-cb"/>
@@ -1081,15 +1106,15 @@ function renderLogin(){
   const bakCount=loadUserBak().filter(u=>u&&u.username&&u.username.toLowerCase()!=='admin'&&u.password).length;
   const recoverCard=bakCount>0?`
   <div class="card" style="border-color:rgba(0,200,83,.4);background:rgba(0,200,83,.06)">
-    <div class="sec-title"><span class="icon">♻️</span> استرجاع الحسابات</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5"></path> <path d="M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775l-1.226-2.12"></path> <path d="m14 16-3 3 3 3"></path> <path d="M8.293 13.596 7.196 9.5 3.1 10.598"></path> <path d="m9.344 5.811 1.093-1.892A1.83 1.83 0 0 1 11.985 3a1.784 1.784 0 0 1 1.546.888l3.943 6.843"></path> <path d="m13.378 9.633 4.096 1.098 1.097-4.096"></path></svg></span> استرجاع الحسابات</div>
     <div style="font-size:.8rem;color:var(--muted2);line-height:1.7;margin-bottom:.625rem">تم العثور على <strong style="color:var(--green)">${bakCount}</strong> حساباً محفوظاً على هذا الجهاز (بكلمات المرور الأصلية). اضغط لإعادتها إلى الخادم.</div>
-    <button class="btn btn-green" onclick="recoverAccounts()">♻️ استرجاع ${bakCount} حساباً إلى الخادم</button>
+    <button class="btn btn-green" onclick="recoverAccounts()"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5"></path> <path d="M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775l-1.226-2.12"></path> <path d="m14 16-3 3 3 3"></path> <path d="M8.293 13.596 7.196 9.5 3.1 10.598"></path> <path d="m9.344 5.811 1.093-1.892A1.83 1.83 0 0 1 11.985 3a1.784 1.784 0 0 1 1.546.888l3.943 6.843"></path> <path d="m13.378 9.633 4.096 1.098 1.097-4.096"></path></svg> استرجاع ${bakCount} حساباً إلى الخادم</button>
   </div>`:'';
   return `<div class="login-wrap">
   <div id="lmsg" class="msg"></div>
   ${recoverCard}
   <div class="card">
-    <div class="sec-title"><span class="icon">🔑</span> دخول</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path> <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle></svg></span> دخول</div>
     <div style="margin-bottom:.625rem"><label>اسم المستخدم</label><input id="lu" placeholder="username" dir="ltr" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"/></div>
     <div style="margin-bottom:.75rem"><label>كلمة المرور</label>
       <div style="position:relative">
@@ -1101,7 +1126,7 @@ function renderLogin(){
   </div>
   <div class="divider">أو أنشئ حساباً جديداً</div>
   <div class="card">
-    <div class="sec-title"><span class="icon">✨</span> إنشاء حساب</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path> <path d="M20 2v4"></path> <path d="M22 4h-4"></path> <circle cx="4" cy="20" r="2"></circle></svg></span> إنشاء حساب</div>
     <div class="two-col" style="margin-bottom:.625rem">
       <div><label>الاسم الكامل</label><input id="rn" placeholder="اسمك"/></div>
       <div><label>اسم المستخدم</label><input id="ru" placeholder="username" dir="ltr"/></div>
@@ -1119,8 +1144,8 @@ function renderLogin(){
 // ── MAIN APP ──────────────────────────────────────────────────
 function renderApp(u){
   const tabs=u.isAdmin
-    ?[['dashboard','📊','الرئيسية'],['matches','⚽','المباريات'],['leaderboard','🏆','الترتيب'],['admin','⚙️','الإدارة'],['share','📤','مشاركة'],['profile','👤','حسابي']]
-    :[['dashboard','📊','الرئيسية'],['matches','⚽','المباريات'],['leaderboard','🏆','الترتيب'],['myresults','📈','نتائجي'],['share','📤','مشاركة'],['profile','👤','حسابي']];
+    ?[['dashboard','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><rect width="7" height="9" x="3" y="3" rx="1"></rect> <rect width="7" height="5" x="14" y="3" rx="1"></rect> <rect width="7" height="9" x="14" y="12" rx="1"></rect> <rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>','الرئيسية'],['matches','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 13V2l8 4-8 4"></path> <path d="M20.561 10.222a9 9 0 1 1-12.55-5.29"></path> <path d="M8.002 9.997a5 5 0 1 0 8.9 2.02"></path></svg>','المباريات'],['leaderboard','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"></path> <path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"></path> <path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"></path></svg>','الترتيب'],['admin','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path> <circle cx="12" cy="12" r="3"></circle></svg>','الإدارة'],['share','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><circle cx="18" cy="5" r="3"></circle> <circle cx="6" cy="12" r="3"></circle> <circle cx="18" cy="19" r="3"></circle> <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line> <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line></svg>','مشاركة'],['profile','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path> <circle cx="12" cy="7" r="4"></circle></svg>','حسابي']]
+    :[['dashboard','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><rect width="7" height="9" x="3" y="3" rx="1"></rect> <rect width="7" height="5" x="14" y="3" rx="1"></rect> <rect width="7" height="9" x="14" y="12" rx="1"></rect> <rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>','الرئيسية'],['matches','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 13V2l8 4-8 4"></path> <path d="M20.561 10.222a9 9 0 1 1-12.55-5.29"></path> <path d="M8.002 9.997a5 5 0 1 0 8.9 2.02"></path></svg>','المباريات'],['leaderboard','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"></path> <path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"></path> <path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"></path></svg>','الترتيب'],['myresults','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M16 7h6v6"></path> <path d="m22 7-8.5 8.5-5-5L2 17"></path></svg>','نتائجي'],['share','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><circle cx="18" cy="5" r="3"></circle> <circle cx="6" cy="12" r="3"></circle> <circle cx="18" cy="19" r="3"></circle> <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line> <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line></svg>','مشاركة'],['profile','<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path> <circle cx="12" cy="7" r="4"></circle></svg>','حسابي']];
   const tabsHtml=tabs.map(([id,ic,lb])=>`<div class="tab" id="tab-${id}" onclick="showPage('${id}')">${ic} ${lb}</div>`).join('');
   return `
   <div class="tabs">${tabsHtml}</div>
@@ -1142,18 +1167,18 @@ function buildMatchesPage(u){
   let html=`<div id="pmsg" class="msg"></div>
   <div class="filter-tabs">
     <div class="ftab ${matchFilter==='upcoming'?'active':''}" onclick="setMF('upcoming')">⏰ قريباً</div>
-    <div class="ftab ${matchFilter==='all'?'active':''}" onclick="setMF('all')">📋 الكل (104)</div>
+    <div class="ftab ${matchFilter==='all'?'active':''}" onclick="setMF('all')"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M3 5h.01"></path> <path d="M3 12h.01"></path> <path d="M3 19h.01"></path> <path d="M8 5h13"></path> <path d="M8 12h13"></path> <path d="M8 19h13"></path></svg> الكل (104)</div>
     ${stages.map(s=>`<div class="ftab ${matchFilter===s?'active':''}" onclick="setMF('${s.replace(/'/g,"\\'")}')"><span style="font-size:.8rem">${stageIcon(s)}</span> ${s}</div>`).join('')}
   </div>
   <div class="scroll-area">`;
 
-  if(!filtered.length){html+=`<div class="empty"><span class="empty-icon">📭</span>لا توجد مباريات</div>`;}
+  if(!filtered.length){html+=`<div class="empty"><span class="empty-icon"><svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline> <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg></span>لا توجد مباريات</div>`;}
 
   // Group by date
   const byDate={};
   filtered.forEach(m=>{const dk=fmtDate(m.ts);(byDate[dk]=byDate[dk]||[]).push(m);});
   for(const dk in byDate){
-    html+=`<div class="group-header">📅 ${dk}</div>`;
+    html+=`<div class="group-header"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M8 2v4"></path> <path d="M16 2v4"></path> <rect width="18" height="18" x="3" y="4" rx="2"></rect> <path d="M3 10h18"></path> <path d="M8 14h.01"></path> <path d="M12 14h.01"></path> <path d="M16 14h.01"></path> <path d="M8 18h.01"></path> <path d="M12 18h.01"></path> <path d="M16 18h.01"></path></svg> ${dk}</div>`;
     byDate[dk].forEach(m=>{
       const locked=!canPredict(m), live=isActive(m), early=tooEarly(m), up=preds[m.id]||{};
       const pts=m.official&&hasPred(up)?calcPts(up,m):null;
@@ -1184,7 +1209,7 @@ function buildMatchesPage(u){
               :locked&&hasPred(up)
               ?`<div style="font-size:.8rem;font-weight:700;color:var(--blue);line-height:1.2">${predLabel(up,m)}</div><div style="font-size:.6rem;color:var(--muted)">توقعك</div>`
               :early?`<div style="font-size:1rem">⏳</div>`
-              :locked?`<div style="font-size:1rem">🔒</div>`
+              :locked?`<div style="font-size:1rem"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect> <path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>`
               :`<div style="font-size:.7rem;color:var(--muted)">VS</div>`}
           </div>
           <div class="team-side">
@@ -1197,7 +1222,7 @@ function buildMatchesPage(u){
           ?`<div style="text-align:center;margin-top:.4rem">
               <span class="badge bm" style="margin-bottom:.25rem">النتيجة: ${resultLabel(m)}</span><br>
               ${pts!==null
-                ?`<span class="badge ${pts===5?'bg':pts>0?'bgr':'bb'}">${pts===5?'⭐ +5 نقاط':pts===4?'✅ ركلات جزاء +4':pts===3?'✅ وقت إضافي +3':pts===2?'✅ فائز صحيح +2':'❌ 0 نقطة'}</span>
+                ?`<span class="badge ${pts===5?'bg':pts>0?'bgr':'bb'}">${pts===5?'<svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path></svg> +5 نقاط':pts===4?'<svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path> <path d="m9 11 3 3L22 4"></path></svg> ركلات جزاء +4':pts===3?'<svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path> <path d="m9 11 3 3L22 4"></path></svg> وقت إضافي +3':pts===2?'<svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path> <path d="m9 11 3 3L22 4"></path></svg> فائز صحيح +2':'<svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><circle cx="12" cy="12" r="10"></circle> <path d="m15 9-6 6"></path> <path d="m9 9 6 6"></path></svg> 0 نقطة'}</span>
                   ${hasPred(up)?`<span class="badge bm" style="margin-right:.3rem">توقعك: ${predLabel(up,m)}</span>`:''}`
                 :`<span class="badge bm">لم تتوقع هذه المباراة</span>`}
             </div>`
@@ -1209,7 +1234,7 @@ function buildMatchesPage(u){
           ?`<div style="text-align:center;margin-top:.4rem">
               ${hasPred(up)
                 ?`<span class="badge bbl">✓ توقعت: ${predLabel(up,m)}</span>`
-                :`<span class="badge bm">🔒 التوقع مغلق — بدأت المباراة</span>`}
+                :`<span class="badge bm"><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect> <path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> التوقع مغلق — بدأت المباراة</span>`}
             </div>`
           :isKO(m)
           ?`<div style="margin-top:.625rem">
@@ -1268,7 +1293,7 @@ function stageColor(s){
 // ── LEADERBOARD PAGE ──────────────────────────────────────────
 function buildLeaderboard(){
   const lb=leaderboard();
-  if(!lb.length) return `<div class="empty"><span class="empty-icon">👥</span>لا يوجد مشاركون حتى الآن</div>`;
+  if(!lb.length) return `<div class="empty"><span class="empty-icon"><svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path> <path d="M16 3.128a4 4 0 0 1 0 7.744"></path> <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path> <circle cx="9" cy="7" r="4"></circle></svg></span>لا يوجد مشاركون حتى الآن</div>`;
   const maxPts=lb[0]?.total||1;
   let html=`<div class="stat-grid">
     <div class="stat-card"><div class="stat-n">${lb.length}</div><div class="stat-l">مشارك</div></div>
@@ -1320,7 +1345,7 @@ function buildMyResults(u){
     <div class="stat-card"><div class="stat-n" style="color:var(--red)">${st.wrong}</div><div class="stat-l">خاطئة</div></div>
     <div class="stat-card"><div class="stat-n" style="color:var(--muted2)">${st.count}</div><div class="stat-l">مباريات توقعتها</div></div>
   </div>`;
-  if(!done.length) return html+`<div class="empty"><span class="empty-icon">⏳</span>لا توجد نتائج محسومة حتى الآن</div>`;
+  if(!done.length) return html+`<div class="empty"><span class="empty-icon"><svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M5 22h14"></path> <path d="M5 2h14"></path> <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"></path> <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"></path></svg></span>لا توجد نتائج محسومة حتى الآن</div>`;
   html+=`<div class="scroll-area">`;
   done.forEach(m=>{
     const up=preds[m.id];
@@ -1373,7 +1398,7 @@ function buildAdmin(){
   let html=`<div id="amsg" class="msg"></div>
 
   <div class="card glass" style="border-color:rgba(255,255,255,.35);margin-bottom:1rem">
-    <div class="sec-title"><span class="icon">📑</span> التقرير اليومي</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path> <path d="M14 2v5a1 1 0 0 0 1 1h5"></path> <path d="M10 9H8"></path> <path d="M16 13H8"></path> <path d="M16 17H8"></path></svg></span> التقرير اليومي</div>
     <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
       تقرير شامل بكل نتائج اليوم والترتيب الحالي للمشاركين — جاهز للمشاركة عبر الواتساب كـ PDF.
     </p>
@@ -1384,7 +1409,7 @@ function buildAdmin(){
   </div>
 
   <div class="card glass" style="border-color:rgba(61,142,240,.35);margin-bottom:1rem">
-    <div class="sec-title" style="border-color:rgba(61,142,240,.2)"><span class="icon">🔄</span> جلب النتائج تلقائياً</div>
+    <div class="sec-title" style="border-color:rgba(61,142,240,.2)"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path> <path d="M21 3v5h-5"></path> <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path> <path d="M8 16H3v5"></path></svg></span> جلب النتائج تلقائياً</div>
     <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
       يجلب النتائج المنتهية من الإنترنت ويعرضها عليك <strong style="color:var(--gold)">للمراجعة قبل الاعتماد</strong> — لن تُعتمد أي نتيجة بدون موافقتك.
     </p>
@@ -1397,7 +1422,7 @@ function buildAdmin(){
   </div>
 
   <div class="card glass" style="border-color:rgba(156,39,176,.35);margin-bottom:1rem">
-    <div class="sec-title" style="border-color:rgba(156,39,176,.25)"><span class="icon">🏟️</span> فرق الأدوار الإقصائية</div>
+    <div class="sec-title" style="border-color:rgba(156,39,176,.25)"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M10 18v-7"></path> <path d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z"></path> <path d="M14 18v-7"></path> <path d="M18 18v-7"></path> <path d="M3 22h18"></path> <path d="M6 18v-7"></path></svg></span> فرق الأدوار الإقصائية</div>
     <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
       يملأ أسماء فرق الأدوار الإقصائية (دور الـ32 وما بعده) <strong style="color:var(--gold)">تلقائياً من النتائج الرسمية</strong>: متصدر/وصيف كل مجموعة، والفائز/الخاسر من كل مباراة. خانات <strong style="color:var(--purple)">«أفضل ثالث»</strong> تُحدّد يدوياً بالأسفل.
     </p>
@@ -1413,7 +1438,7 @@ function buildAdmin(){
   </div>
 
   <div class="card glass" style="border-color:rgba(0,200,83,.3);margin-bottom:1rem">
-    <div class="sec-title" style="border-color:rgba(0,200,83,.2)"><span class="icon">📊</span> إدخال النتائج عبر ملف Excel</div>
+    <div class="sec-title" style="border-color:rgba(0,200,83,.2)"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path> <path d="M18 17V9"></path> <path d="M13 17V5"></path> <path d="M8 17v-3"></path></svg></span> إدخال النتائج عبر ملف Excel</div>
     <p style="font-size:.74rem;color:var(--muted2);line-height:1.7;margin-bottom:.75rem">
       اكتب النتيجة في عمود <strong style="color:var(--gold)">Result</strong> بصيغة <code style="color:var(--gold2);background:rgba(0,0,0,.3);padding:.1rem .3rem;border-radius:4px">2-1</code> (المضيف-الضيف)، ثم ارفع الملف هنا. تُحدّث النتائج وتُوزّع النقاط تلقائياً على الجميع.
     </p>
@@ -1423,7 +1448,7 @@ function buildAdmin(){
     <div id="xlsx-preview"></div>
   </div>
 
-  <div class="sec-title"><span class="icon">🏅</span> إدخال يدوي للنتائج
+  <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"></path> <path d="M11 12 5.12 2.2"></path> <path d="m13 12 5.88-9.8"></path> <path d="M8 7h8"></path> <circle cx="12" cy="17" r="5"></circle> <path d="M12 18v-2h-.5"></path></svg></span> إدخال يدوي للنتائج
     <span class="badge ${pending.length?'bb':'bm'}" style="margin-right:auto">${pending.length} مباراة</span>
   </div>`;
   if(!pending.length) html+=`<div class="empty" style="padding:1rem">لا توجد مباريات تنتظر نتائج</div>`;
@@ -1457,7 +1482,7 @@ function buildAdmin(){
   });
   html+=`</div>`;
   if(done.length){
-    html+=`<div class="sec-title" style="margin-top:1rem"><span class="icon">✅</span> نتائج محسومة (${done.length})</div>
+    html+=`<div class="sec-title" style="margin-top:1rem"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path> <path d="m9 11 3 3L22 4"></path></svg></span> نتائج محسومة (${done.length})</div>
     <div class="scroll-area" style="max-height:22vh">`;
     done.forEach(m=>{
       html+=`<div class="card2" style="display:flex;align-items:center;gap:.5rem;padding:.55rem .75rem;margin-bottom:.35rem">
@@ -1467,9 +1492,9 @@ function buildAdmin(){
     });
     html+=`</div>`;
   }
-  html+=`<div class="sec-title" style="margin-top:1rem"><span class="icon">👥</span> المشاركون (${users.length})</div>`;
+  html+=`<div class="sec-title" style="margin-top:1rem"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path> <path d="M16 3.128a4 4 0 0 1 0 7.744"></path> <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path> <circle cx="9" cy="7" r="4"></circle></svg></span> المشاركون (${users.length})</div>`;
   html+=`<div style="display:flex;gap:.5rem;margin-bottom:.6rem">
-    <button class="btn btn-blue btn-sm" style="flex:1;width:auto" onclick="exportUsersBackup('xlsx')">💾 تصدير المستخدمين (Excel)</button>
+    <button class="btn btn-blue btn-sm" style="flex:1;width:auto" onclick="exportUsersBackup('xlsx')"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 15V3"></path> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path> <path d="m7 10 5 5 5-5"></path></svg> تصدير المستخدمين (Excel)</button>
     <button class="btn btn-outline btn-sm" style="flex:1;width:auto" onclick="exportUsersBackup('json')">🗄️ نسخة JSON</button>
   </div>`;
   if(!users.length) html+=`<div class="empty" style="padding:.75rem">لا يوجد مشاركون بعد</div>`;
@@ -1493,7 +1518,7 @@ function buildAdmin(){
 function buildSharePage(){
   const lb=leaderboard(), top=lb[0];
   return `
-  <div class="sec-title"><span class="icon">📤</span> بطاقة المسابقة</div>
+  <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><circle cx="18" cy="5" r="3"></circle> <circle cx="6" cy="12" r="3"></circle> <circle cx="18" cy="19" r="3"></circle> <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line> <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line></svg></span> بطاقة المسابقة</div>
   <div class="share-card">
     <div class="share-card-title">🏆 WORLD CUP 2026</div>
     <div class="share-card-sub">مسابقة توقع النتائج</div>
@@ -1513,20 +1538,20 @@ function buildSharePage(){
     </div>
   </div>
   <div class="card">
-    <div class="sec-title"><span class="icon">🔗</span> رابط المسابقة</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path> <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span> رابط المسابقة</div>
     <div style="background:rgba(0,0,0,.4);border:1px solid var(--border2);border-radius:var(--r2);padding:.625rem .875rem;font-size:.75rem;color:var(--muted2);word-break:break-all;margin-bottom:.75rem;direction:ltr;text-align:left" id="site-url">${window.location.href}</div>
     <div class="share-btns">
       <button class="share-btn share-whatsapp" onclick="shareWhatsapp()">📱 واتساب</button>
-      <button class="share-btn share-copy" onclick="copyLink()">📋 نسخ الرابط</button>
+      <button class="share-btn share-copy" onclick="copyLink()"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect> <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path> <path d="M12 11h4"></path> <path d="M12 16h4"></path> <path d="M8 11h.01"></path> <path d="M8 16h.01"></path></svg> نسخ الرابط</button>
     </div>
   </div>
   <div class="card">
-    <div class="sec-title"><span class="icon">🏅</span> بطاقة آلية النقاط</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"></path> <path d="M11 12 5.12 2.2"></path> <path d="m13 12 5.88-9.8"></path> <path d="M8 7h8"></path> <circle cx="12" cy="17" r="5"></circle> <path d="M12 18v-2h-.5"></path></svg></span> بطاقة آلية النقاط</div>
     <div style="font-size:.82rem;color:var(--muted2);margin-bottom:.75rem">اعرض وشارك شرح نظام النقاط كصورة على واتساب</div>
-    <button class="btn" onclick="exportScoringCard()">🃏 عرض بطاقة آلية النقاط</button>
+    <button class="btn" onclick="exportScoringCard()"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"></path> <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"></path> <path d="m2 16 6 6"></path> <circle cx="16" cy="9" r="2.9"></circle> <circle cx="6" cy="5" r="3"></circle></svg> عرض بطاقة آلية النقاط</button>
   </div>
   <div class="card">
-    <div class="sec-title"><span class="icon">📊</span> ملخص المسابقة</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path> <path d="M18 17V9"></path> <path d="M13 17V5"></path> <path d="M8 17v-3"></path></svg></span> ملخص المسابقة</div>
     <div style="font-size:.8rem;line-height:2;color:var(--muted2)">
       <div>👥 المشاركون: <strong style="color:var(--text)">${lb.length}</strong></div>
       ${top?`<div>🏅 المتصدر: <strong style="color:var(--gold)">${top.name}</strong> (${top.total} نقطة)</div>`:''}
@@ -2190,7 +2215,7 @@ async function exportScoringCard(){
       <img src="${imgData}" style="width:100%;max-width:600px;border-radius:10px;display:block" loading="lazy"/>
     </div>
     <div style="padding:.75rem;background:rgba(0,0,0,.5);border-top:1px solid rgba(255,255,255,.2);display:flex;gap:.5rem;flex-shrink:0">
-      <button class="btn btn-green" style="flex:1" onclick="_scoringShare()">📤 مشاركة (واتساب)</button>
+      <button class="btn btn-green" style="flex:1" onclick="_scoringShare()"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><circle cx="18" cy="5" r="3"></circle> <circle cx="6" cy="12" r="3"></circle> <circle cx="18" cy="19" r="3"></circle> <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line> <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line></svg> مشاركة (واتساب)</button>
       <button class="btn btn-blue" style="flex:1" onclick="_scoringDownload()">⬇️ تنزيل صورة</button>
     </div>`;
   document.body.appendChild(overlay);
@@ -2239,7 +2264,7 @@ async function exportDailyReport(mode){
       <img id="report-img" src="${imgData}" style="width:100%;max-width:600px;border-radius:10px;display:block" loading="lazy"/>
     </div>
     <div style="padding:.75rem;background:rgba(0,0,0,.5);border-top:1px solid rgba(255,255,255,.2);display:flex;gap:.5rem;flex-shrink:0">
-      <button id="report-share-btn" class="btn btn-green" style="flex:1" onclick="_reportShare('${fname}')">📤 مشاركة (واتساب)</button>
+      <button id="report-share-btn" class="btn btn-green" style="flex:1" onclick="_reportShare('${fname}')"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><circle cx="18" cy="5" r="3"></circle> <circle cx="6" cy="12" r="3"></circle> <circle cx="18" cy="19" r="3"></circle> <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line> <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line></svg> مشاركة (واتساب)</button>
       <button class="btn btn-blue" style="flex:1" onclick="_reportDownloadImg('${fname}')">⬇️ تنزيل صورة</button>
       ${typeof window.jspdf!=='undefined'?`<button class="btn btn-outline" style="flex:1" onclick="_reportDownloadPdf('${fname}')">📄 PDF</button>`:''}
     </div>`;
@@ -2337,7 +2362,7 @@ function buildProfile(u){
     <div class="avatar">${u.name[0].toUpperCase()}</div>
     <div style="font-size:1.1rem;font-weight:700">${u.name}</div>
     <div style="font-size:.75rem;color:var(--muted)">@${u.username}</div>
-    ${u.isAdmin?`<span class="badge bb" style="margin-top:.4rem">⚙️ ADMIN</span>`:''}
+    ${u.isAdmin?`<span class="badge bb" style="margin-top:.4rem"><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path> <circle cx="12" cy="12" r="3"></circle></svg> ADMIN</span>`:''}
   </div>
   ${!u.isAdmin?`<div class="stat-grid">
     <div class="stat-card"><div class="stat-n" style="color:var(--gold)">${st.total}</div><div class="stat-l">النقاط</div></div>
@@ -2345,13 +2370,13 @@ function buildProfile(u){
     <div class="stat-card"><div class="stat-n" style="color:var(--green)">${st.correct}</div><div class="stat-l">إصابات</div></div>
   </div>`:''}
   <div class="card">
-    <div class="sec-title"><span class="icon">✏️</span> تغيير الاسم</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path> <path d="m15 5 4 4"></path></svg></span> تغيير الاسم</div>
     <div style="margin-bottom:.75rem"><label>الاسم الجديد (يظهر في الترتيب)</label><input id="newname" placeholder="${u.name}" value="${u.name}"/></div>
     <div id="namemsg" class="msg"></div>
     <button class="btn btn-sm" onclick="changeName()">حفظ الاسم</button>
   </div>
   <div class="card">
-    <div class="sec-title"><span class="icon">🔑</span> تغيير كلمة المرور</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path> <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle></svg></span> تغيير كلمة المرور</div>
     <div style="margin-bottom:.625rem"><label>الحالية</label><input id="pw1" type="password" placeholder="••••••"/></div>
     <div style="margin-bottom:.75rem"><label>الجديدة (6+ أحرف)</label><input id="pw2" type="password" placeholder="••••••"/></div>
     <div id="pwmsg" class="msg"></div>
@@ -2428,7 +2453,7 @@ function buildDashboard(u){
   html+=`<div class="two-col" style="margin-bottom:.875rem">`;
   if(upcoming){
     html+=`<div class="card2" style="text-align:center">
-      <div style="font-size:.66rem;color:var(--muted);margin-bottom:.4rem">⏰ المباراة القادمة</div>
+      <div style="font-size:.66rem;color:var(--muted);margin-bottom:.4rem"><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="10" x2="14" y1="2" y2="2"></line> <line x1="12" x2="15" y1="14" y2="11"></line> <circle cx="12" cy="14" r="8"></circle></svg> المباراة القادمة</div>
       <div style="font-size:1.3rem">${teamFlag(upcoming.t1)} <span style="font-size:.7rem;color:var(--muted)">vs</span> ${teamFlag(upcoming.t2)}</div>
       <div style="font-size:.66rem;color:var(--muted2);margin-top:.3rem">${teamName(upcoming.t1)} - ${teamName(upcoming.t2)}</div>
       <div class="countdown-box" style="margin-top:.5rem" id="cd-box"><span id="cd-text">${fmtDate(upcoming.ts)} ${fmtTime(upcoming.ts)}</span></div>
@@ -2449,24 +2474,24 @@ function buildDashboard(u){
   html+=`</div>`;
 
   if(!totalPlayers){
-    return html+`<div class="empty"><span class="empty-icon">📊</span>لا توجد بيانات كافية للإحصائيات بعد</div></div>`;
+    return html+`<div class="empty"><span class="empty-icon"><svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path> <path d="M18 17V9"></path> <path d="M13 17V5"></path> <path d="M8 17v-3"></path></svg></span>لا توجد بيانات كافية للإحصائيات بعد</div></div>`;
   }
 
   // Top 5 chart (points)
   html+=`<div class="card">
-    <div class="sec-title"><span class="icon">🏅</span> أعلى 5 متصدرين بالنقاط</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"></path> <path d="M11 12 5.12 2.2"></path> <path d="m13 12 5.88-9.8"></path> <path d="M8 7h8"></path> <circle cx="12" cy="17" r="5"></circle> <path d="M12 18v-2h-.5"></path></svg></span> أعلى 5 متصدرين بالنقاط</div>
     <div style="position:relative;height:200px"><canvas id="chart-top"></canvas></div>
   </div>`;
 
   // Accuracy chart
   html+=`<div class="card">
-    <div class="sec-title"><span class="icon">🎯</span> نسبة دقة التوقعات</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><circle cx="12" cy="12" r="10"></circle> <circle cx="12" cy="12" r="6"></circle> <circle cx="12" cy="12" r="2"></circle></svg></span> نسبة دقة التوقعات</div>
     <div style="position:relative;height:${Math.max(120,lbAcc.length*34)}px"><canvas id="chart-acc"></canvas></div>
   </div>`;
 
   // Points distribution donut
   html+=`<div class="card">
-    <div class="sec-title"><span class="icon">🍩</span> توزيع التوقعات (الكل)</div>
+    <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z"></path> <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path></svg></span> توزيع التوقعات (الكل)</div>
     <div style="position:relative;height:200px"><canvas id="chart-dist"></canvas></div>
   </div>`;
 
@@ -2490,7 +2515,7 @@ function buildDashboard(u){
   // Per-match stats (recent finished)
   if(done.length){
     html+=`<div class="card">
-      <div class="sec-title"><span class="icon">📋</span> إحصائيات المباريات المنتهية</div>
+      <div class="sec-title"><span class="icon"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect> <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path> <path d="M12 11h4"></path> <path d="M12 16h4"></path> <path d="M8 11h.01"></path> <path d="M8 16h.01"></path></svg></span> إحصائيات المباريات المنتهية</div>
       <div class="scroll-area" style="max-height:30vh">`;
     [...done].sort((a,b)=>b.ts-a.ts).forEach(m=>{
       const s=matchPredStats(m);
